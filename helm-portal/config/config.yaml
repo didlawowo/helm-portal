@@ -1,0 +1,12 @@
+server:
+  port: 3000
+  host: "localhost"
+
+storage:
+  path: "./charts"
+
+auth:
+  enabled: true
+  
+kubernetes:
+  configPath: "~/.kube/config"
