@@ -45,7 +45,7 @@ A lightweight web portal for managing and deploying Helm charts in your Kubernet
 ## Project Structure
 
 ```
-helm-portal/
+src/
 ├── cmd/
 │   └── server/
 │       └── main.go

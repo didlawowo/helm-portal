@@ -1,0 +1,91 @@
+image:
+  repository: fizzbuzz2/jwt-auth
+  tag: a3b650c
+  pullPolicy: "Always"
+  pullSecrets:
+    - name: registry-credentials
+domainName: "mtls-server.dc-tech.work"
+autoscaling:
+  enabled: false
+replicas: 1
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 25%
+    maxSurge: 25%
+serviceAccount:
+  create: true
+  name: mtls-server
+application:
+  ports:
+    - name: http
+      containerPort: 8000
+      protocol: TCP
+  containerName: mtls-server
+  command: []
+  args: []
+service:
+  port: 80
+  targetPort: 8080
+  type: ClusterIP
+  portName: http
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 150m
+    memory: 128Mi
+env:
+  - name: JWT_SECRET_KEY
+    value: my-super-jwt-secret-key
+  - name: API_KEY
+    value: my-super-api-key
+  - name: JWT_EXPECTED_ISSUER
+    value: jwt-signer
+  - name: EXPECTED_AUDIENCE
+    value: audience
+  - name: REQUIRE_SCOPE
+    value: "true"
+  - name: DD_ENV
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['tags.datadoghq.com/env']
+  - name: DD_SERVICE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['tags.datadoghq.com/service']
+  - name: DD_VERSION
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['tags.datadoghq.com/version']
+volumeMounts:
+  - name: apmsocketpath
+    mountPath: /var/run/datadog
+volumes:
+  - name: apmsocketpath
+    hostPath:
+      path: /var/run/datadog/
+envFrom: []
+nodeSelector:
+  kubernetes.io/arch: arm64
+livenessProbe:
+  httpGet:
+    scheme: HTTP
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 3
+readinessProbe:
+  httpGet:
+    scheme: HTTP
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3

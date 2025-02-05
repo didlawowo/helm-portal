@@ -1,0 +1,34 @@
+services:
+  mtls-server:
+    hostname: mtls-server
+    container_name: mtls-server
+    build: 
+      platforms:
+          - linux/arm64
+      context: src
+      dockerfile: Dockerfile
+      
+    environment:
+      JWT_SECRET_KEY: test-key
+      API_KEY: my-api-key
+      JWT_EXPECTED_ISSUER: jwt-signer
+      EXPECTED_AUDIENCE: your-default-audience
+      REQUIRE_SCOPE: false
+    ports:
+      - "3000:3000"
+    networks:
+      - mtls-net    
+
+      
+  test-api:
+    image: kennethreitz/httpbin
+    container_name: test-api
+    hostname: test-api
+    ports:
+      - "8082:80"
+    networks:
+      - mtls-net
+
+networks:
+  mtls-net:
+    external: false

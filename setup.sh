@@ -8,10 +8,10 @@ trap 'echo "❌ Error on line $LINENO. Exit code: $?"' ERR
 
 # 📂 Create main project directory
 echo "🚀 Creating project structure..."
-mkdir -p helm-portal/{cmd/server,internal/{api/{handlers,middleware,routes},chart/{parser,storage},kubernetes/client,models},web/{templates,static},config}
+mkdir -p src/{cmd/server,internal/{api/{handlers,middleware,routes},chart/{parser,storage},kubernetes/client,models},web/{templates,static},config}
 
 # 📝 Create initial files
-cd helm-portal
+cd src
 
 # Create go.mod
 echo "📦 Initializing Go module..."

@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "array",
+    "items": {
+        "$ref": "#/definitions/Welcome4Element"
+    },
+    "definitions": {
+        "Welcome4Element": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "authorize": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Authorize"
+                    }
+                },
+                "deny": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [],
+            "title": "Welcome4Element"
+        },
+        "Authorize": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "test-api": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "auth": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [],
+            "title": "Authorize"
+        }
+    }
+}
