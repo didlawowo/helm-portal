@@ -1,0 +1,59 @@
+<!-- views/home.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto">
+            <h1 class="text-2xl font-bold">Helm Chart Repository</h1>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {{range .Charts}}
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-blue-600">{{.Name}}</h2>
+                <div class="mt-2 text-sm text-gray-600">
+                    <p><span class="font-semibold">Version:</span> {{.Version}}</p>
+                    {{if .AppVersion}}
+                    <p><span class="font-semibold">App Version:</span> {{.AppVersion}}</p>
+                    {{end}}
+                </div>
+                <p class="mt-4 text-gray-700">{{.Description}}</p>
+                <div class="mt-4 flex justify-between items-center">
+                    <a href="/charts/{{.Name}}-{{.Version}}.tgz" 
+                       class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Download
+                    </a>
+                </div>
+            </div>
+            {{else}}
+            <div class="col-span-full text-center py-8">
+                <p class="text-gray-500">No charts available yet.</p>
+                <p class="mt-2 text-sm text-gray-400">Upload a chart to get started.</p>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Upload Form -->
+        <div class="mt-8 bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold mb-4">Upload New Chart</h2>
+            <form action="/charts" method="POST" enctype="multipart/form-data" 
+                  class="flex flex-col md:flex-row gap-4">
+                <input type="file" name="chart" accept=".tgz" required
+                       class="flex-1 border rounded p-2">
+                <button type="submit" 
+                        class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">
+                    Upload
+                </button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>
