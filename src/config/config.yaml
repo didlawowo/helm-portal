@@ -1,12 +1,13 @@
 server:
-  port: 3000
+  port: 8080
   host: "localhost"
 
 storage:
-  path: "./charts"
+  path: "/path/to/storage"
 
-auth:
-  enabled: true
-  
-kubernetes:
-  configPath: "~/.kube/config"
+helm:
+  baseURL: "https://localhost:3030"
+  maxChartSize: "100Mi" # optionnel
+
+logging:
+  level: "info"

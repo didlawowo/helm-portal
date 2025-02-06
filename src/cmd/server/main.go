@@ -3,8 +3,10 @@
 package main
 
 import (
-	"helm-portal/pkg/api/handlers"
-	service "helm-portal/pkg/chart/services"
+	"helm-portal/config"
+	"helm-portal/pkg/handlers"
+	service "helm-portal/pkg/services"
+
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -52,9 +54,9 @@ func main() {
 	})
 
 	// Initialize handlers with logger
-	chartService := service.NewChartService("./charts", log)
+	chartService := service.NewChartService(&config.Config{}, log)
 	chartHandler := handlers.NewChartHandler(chartService, log)
-
+	configHandler := handlers.NewConfigHandler(&config.Config{}, log)
 	// Setup routes
 	// add route to favicon
 	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
@@ -62,11 +64,13 @@ func main() {
 	})
 
 	app.Get("/", chartHandler.Home)
+	app.Delete("/charts/:name", chartHandler.Delete)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
 	app.Post("/charts", chartHandler.UploadChart)
-
+	app.Get("/config", configHandler.GetConfig)
+	app.Get("/charts/:name/:version", chartHandler.Download)
 	app.Get("/index.yaml", chartHandler.GetIndex)
 	app.Get("/charts/:name", chartHandler.GetChart)
 

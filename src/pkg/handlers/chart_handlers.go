@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	service "helm-portal/pkg/chart/services"
+	service "helm-portal/pkg/services"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
@@ -121,7 +121,8 @@ func (h *ChartHandler) Download(c *fiber.Ctx) error {
 
 func (h *ChartHandler) Delete(c *fiber.Ctx) error {
 	name := c.Params("name")
-	if err := h.service.DeleteChart(name); err != nil {
+	version := c.Query("version")
+	if err := h.service.DeleteChart(name, version); err != nil {
 		h.log.WithError(err).Error("Failed to delete chart")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to delete chart"})
 	}

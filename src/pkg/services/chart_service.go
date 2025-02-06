@@ -6,11 +6,14 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"helm-portal/config"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -34,14 +37,20 @@ type ChartMetadata struct {
 // ChartService handles chart operations
 type ChartService struct {
 	storagePath string
+	config      *config.Config
 	log         *logrus.Logger
+	baseURL     string
+	// maxChartSize int64
 }
 
 // NewChartService creates a new chart service
-func NewChartService(storagePath string, log *logrus.Logger) *ChartService {
+func NewChartService(config *config.Config, log *logrus.Logger) *ChartService {
 	return &ChartService{
-		storagePath: storagePath,
+		storagePath: config.Storage.Path,
+		config:      config,
 		log:         log,
+		baseURL:     config.Helm.BaseURL,
+		// maxChartSize: config.Helm.MaxChartSize,
 	}
 }
 
@@ -219,7 +228,21 @@ func (s *ChartService) GetChart(chartName string) ([]byte, error) {
 	return os.ReadFile(chartPath)
 }
 
-func (s *ChartService) DeleteChart(chartName string) error {
-	chartPath := s.GetChartPath(chartName)
-	return os.Remove(chartPath)
+func (s *ChartService) DeleteChart(chartName string, version string) error {
+	// Construire le nom du fichier avec la version
+	chartFileName := fmt.Sprintf("%s-%s.tgz", chartName, version)
+	chartPath := s.GetChartPath(chartFileName)
+
+	// Vérifier si le chart existe
+	if !s.ChartExists(chartFileName) {
+		return fmt.Errorf("chart %s version %s not found", chartName, version)
+	}
+
+	// Supprimer le fichier
+	if err := os.Remove(chartPath); err != nil {
+		return fmt.Errorf("failed to delete chart: %w", err)
+	}
+
+	// Mettre à jour l'index
+	return s.UpdateIndex(s.baseURL)
 }
