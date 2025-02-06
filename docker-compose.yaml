@@ -1,7 +1,7 @@
 services:
-  mtls-server:
-    hostname: mtls-server
-    container_name: mtls-server
+  helm-portal:
+    hostname: helm-portal
+    container_name: helm-portal
     build: 
       platforms:
           - linux/arm64
@@ -10,25 +10,12 @@ services:
       
     environment:
       JWT_SECRET_KEY: test-key
-      API_KEY: my-api-key
-      JWT_EXPECTED_ISSUER: jwt-signer
-      EXPECTED_AUDIENCE: your-default-audience
-      REQUIRE_SCOPE: false
+    healthcheck:
+      test: ["executable", "arg"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
     ports:
-      - "3000:3000"
-    networks:
-      - mtls-net    
-
-      
-  test-api:
-    image: kennethreitz/httpbin
-    container_name: test-api
-    hostname: test-api
-    ports:
-      - "8082:80"
-    networks:
-      - mtls-net
-
-networks:
-  mtls-net:
-    external: false
+      - "3030:3000"
+ 

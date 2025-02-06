@@ -16,3 +16,4 @@ tmp/
 make-certs.sh
 cmd/client*
 .air.toml
+src/test

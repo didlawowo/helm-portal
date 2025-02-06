@@ -213,3 +213,13 @@ func (s *ChartService) IndexExists() bool {
 	_, err := os.Stat(s.GetIndexPath())
 	return !os.IsNotExist(err)
 }
+
+func (s *ChartService) GetChart(chartName string) ([]byte, error) {
+	chartPath := s.GetChartPath(chartName)
+	return os.ReadFile(chartPath)
+}
+
+func (s *ChartService) DeleteChart(chartName string) error {
+	chartPath := s.GetChartPath(chartName)
+	return os.Remove(chartPath)
+}

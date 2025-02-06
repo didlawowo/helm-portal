@@ -109,6 +109,25 @@ func (h *ChartHandler) UploadChart(c *fiber.Ctx) error {
 	})
 }
 
+func (h *ChartHandler) Download(c *fiber.Ctx) error {
+	name := c.Params("name")
+	chart, err := h.service.GetChart(name)
+	if err != nil {
+		h.log.WithError(err).Error("Failed to get chart")
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to get chart"})
+	}
+	return c.Send(chart)
+}
+
+func (h *ChartHandler) Delete(c *fiber.Ctx) error {
+	name := c.Params("name")
+	if err := h.service.DeleteChart(name); err != nil {
+		h.log.WithError(err).Error("Failed to delete chart")
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to delete chart"})
+	}
+	return c.JSON(fiber.Map{"message": "Chart deleted successfully"})
+}
+
 func (h *ChartHandler) Home(c *fiber.Ctx) error {
 	charts, err := h.service.ListCharts()
 	if err != nil {
