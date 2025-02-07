@@ -11,6 +11,10 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"helm-portal/config"
+
+	"helm-portal/pkg/interfaces"
+	"helm-portal/pkg/storage"
+
 	"os"
 	"path/filepath"
 	"time"
@@ -35,38 +39,46 @@ type ChartVersion struct {
 	URLs        []string  `yaml:"urls"`   // URLs de téléchargement
 }
 
-type IndexService struct {
-	storagePath    string
-	config         *config.Config
-	log            *logrus.Logger
-	baseURL        string
-	chartExtractor ChartExtractor
+// ChartExtractor extrait les informations des charts
+type ChartExtractor struct {
+	pathManager *storage.PathManager
+	log         *logrus.Logger
 }
 
-func NewIndexService(config *config.Config, log *logrus.Logger, chartExtractor ChartExtractor) *IndexService {
+type IndexService struct {
+	pathManager  *storage.PathManager
+	config       *config.Config
+	log          *logrus.Logger
+	baseURL      string
+	chartService interfaces.ChartServiceInterface
+}
+
+// GetIndexPath implements IndexUpdater.
+func (s *IndexService) GetIndexPath() string {
+	panic("unimplemented")
+}
+
+func NewIndexService(config *config.Config, log *logrus.Logger, chartService interfaces.ChartServiceInterface) *IndexService {
 	if err := os.MkdirAll(config.Storage.Path, 0755); err != nil {
 		log.WithError(err).Error("❌ Impossible de créer le dossier de stockage")
 	}
 
 	return &IndexService{
-		storagePath:    config.Storage.Path,
-		config:         config,
-		log:            log,
-		baseURL:        config.Helm.BaseURL,
-		chartExtractor: chartExtractor,
+		pathManager:  storage.NewPathManager(config.Storage.Path),
+		config:       config,
+		log:          log,
+		baseURL:      config.Helm.BaseURL,
+		chartService: chartService,
 	}
 }
 
 func (s *IndexService) EnsureIndexExists() error {
-	indexPath := filepath.Join(s.storagePath, "index.yaml")
+	indexPath := s.pathManager.GetIndexPath()
+	// Vérifier si le fichier index.yaml existe
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
 		return s.UpdateIndex()
 	}
 	return nil
-}
-
-func (s *IndexService) GetIndexPath() string {
-	return filepath.Join(s.storagePath, "index.yaml")
 }
 
 // generateIndex crée ou met à jour le fichier index.yaml
@@ -81,7 +93,7 @@ func (s *IndexService) UpdateIndex() error {
 	}
 
 	// Lire le répertoire des charts
-	chartsDir := filepath.Join(s.storagePath, "charts")
+	chartsDir := s.pathManager.GetGlobalPath()
 	files, err := os.ReadDir(chartsDir)
 	if err != nil {
 		return fmt.Errorf("❌ erreur lecture répertoire charts: %w", err)
@@ -102,7 +114,7 @@ func (s *IndexService) UpdateIndex() error {
 		}
 
 		// Extraire les métadonnées
-		metadata, err := s.chartExtractor.ExtractChartMetadata(chartData)
+		metadata, err := s.chartService.ExtractChartMetadata(chartData)
 		if err != nil {
 			s.log.WithError(err).WithField("file", file.Name()).Error("❌ Erreur extraction métadonnées")
 			continue
@@ -147,7 +159,7 @@ func (s *IndexService) UpdateIndex() error {
 	}
 
 	// Sauvegarder le fichier
-	indexPath := filepath.Join(s.storagePath, "index.yaml")
+	indexPath := s.pathManager.GetIndexPath()
 	if err := os.WriteFile(indexPath, indexYAML, 0644); err != nil {
 		return fmt.Errorf("❌ erreur sauvegarde index: %w", err)
 	}

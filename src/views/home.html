@@ -27,7 +27,7 @@
                 </div>
                 <p class="mt-4 text-gray-700">{{.Description}}</p>
                 <div class="mt-4 flex justify-between items-center">
-                    <a href="/charts/{{.Name}}-{{.Version}}.tgz" 
+                    <a href="/chart/{{.Name}}/{{.Version}}"
                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                         Download
                     </a>
@@ -44,7 +44,7 @@
         <!-- Upload Form -->
         <div class="mt-8 bg-white rounded-lg shadow p-6">
             <h2 class="text-xl font-bold mb-4">Upload New Chart</h2>
-            <form action="/charts" method="POST" enctype="multipart/form-data" 
+            <form action="/chart" method="POST" enctype="multipart/form-data" 
                   class="flex flex-col md:flex-row gap-4">
                 <input type="file" name="chart" accept=".tgz" required
                        class="flex-1 border rounded p-2">

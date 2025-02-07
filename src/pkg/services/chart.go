@@ -14,29 +14,24 @@ import (
 	"strings"
 
 	"helm-portal/config"
+	"helm-portal/pkg/models"
+	"helm-portal/pkg/storage"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 // ChartMetadata represents the Chart.yaml file structure
-type ChartMetadata struct {
-	Name         string `yaml:"name"`
-	Version      string `yaml:"version"`
-	Description  string `yaml:"description"`
-	ApiVersion   string `yaml:"apiVersion"`
-	Type         string `yaml:"type,omitempty"`
-	AppVersion   string `yaml:"appVersion,omitempty"`
-	Dependencies []struct {
-		Name       string `yaml:"name"`
-		Version    string `yaml:"version"`
-		Repository string `yaml:"repository"`
-	} `yaml:"dependencies,omitempty"`
+
+type IndexUpdater interface {
+	UpdateIndex() error
+	EnsureIndexExists() error
+	GetIndexPath() string
 }
 
 // ChartService handles chart operations
 type ChartService struct {
-	storagePath  string
+	pathManager  *storage.PathManager
 	config       *config.Config
 	log          *logrus.Logger
 	baseURL      string
@@ -49,18 +44,21 @@ func NewChartService(config *config.Config, log *logrus.Logger, indexUpdater Ind
 		log.WithError(err).Error("❌ Impossible de créer le dossier de stockage")
 	}
 	return &ChartService{
-		storagePath:  config.Storage.Path,
+		pathManager:  storage.NewPathManager(config.Storage.Path),
 		config:       config,
 		log:          log,
 		baseURL:      config.Helm.BaseURL,
 		indexUpdater: indexUpdater,
 	}
 }
+func (s *ChartService) GetPathManager() *storage.PathManager {
+	return s.pathManager
+}
 
 // SaveChart saves an uploaded chart file
 func (s *ChartService) SaveChart(chartData []byte, filename string) error {
 	// ✨ Create charts directory if not exists
-	chartsDir := filepath.Join(s.storagePath, "charts")
+	chartsDir := s.pathManager.GetGlobalPath()
 	if err := os.MkdirAll(chartsDir, 0755); err != nil {
 		return fmt.Errorf("❌ failed to create charts directory: %w", err)
 	}
@@ -92,7 +90,7 @@ func (s *ChartService) SaveChart(chartData []byte, filename string) error {
 }
 
 // extractChartMetadata extracts Chart.yaml from the tgz file
-func (s *ChartService) ExtractChartMetadata(chartData []byte) (*ChartMetadata, error) {
+func (s *ChartService) ExtractChartMetadata(chartData []byte) (*models.ChartMetadata, error) {
 	// 📦 Read the gzip file
 	gr, err := gzip.NewReader(bytes.NewReader(chartData))
 	if err != nil {
@@ -122,7 +120,7 @@ func (s *ChartService) ExtractChartMetadata(chartData []byte) (*ChartMetadata, e
 			}
 
 			// Parse YAML
-			var metadata ChartMetadata
+			var metadata models.ChartMetadata
 			if err := yaml.Unmarshal(content, &metadata); err != nil {
 				return nil, err
 			}
@@ -135,9 +133,9 @@ func (s *ChartService) ExtractChartMetadata(chartData []byte) (*ChartMetadata, e
 }
 
 // ListCharts returns all available charts
-func (s *ChartService) ListCharts() ([]ChartMetadata, error) {
-	chartsDir := filepath.Join(s.storagePath, "charts")
-	var charts []ChartMetadata
+func (s *ChartService) ListCharts() ([]models.ChartMetadata, error) {
+	chartsDir := s.pathManager.GetGlobalPath()
+	var charts []models.ChartMetadata
 
 	// Read charts directory
 	files, err := os.ReadDir(chartsDir)
@@ -171,32 +169,24 @@ func (s *ChartService) ListCharts() ([]ChartMetadata, error) {
 	return charts, nil
 }
 
-func (s *ChartService) GetChartPath(chartName string) string {
-	return filepath.Join(s.storagePath, "charts", chartName)
-}
-
-func (s *ChartService) ChartExists(chartName string) bool {
-	_, err := os.Stat(s.GetChartPath(chartName))
+func (s *ChartService) ChartExists(chartName string, version string) bool {
+	_, err := os.Stat(s.pathManager.GetChartPath(chartName, version))
 	return !os.IsNotExist(err)
 }
 
-func (s *ChartService) IndexExists() bool {
-	_, err := os.Stat(filepath.Join(s.storagePath, "index.yaml"))
-	return !os.IsNotExist(err)
-}
+func (s *ChartService) GetChart(chartName string, version string) ([]byte, error) {
+	fileName := fmt.Sprintf("%s-%s.tgz", chartName, version)
+	chartPath := filepath.Join(s.pathManager.GetGlobalPath(), fileName)
 
-func (s *ChartService) GetChart(chartName string) ([]byte, error) {
-	chartPath := s.GetChartPath(chartName)
 	return os.ReadFile(chartPath)
 }
 
 func (s *ChartService) DeleteChart(chartName string, version string) error {
-	// Construire le nom du fichier avec la version
-	chartFileName := fmt.Sprintf("%s-%s.tgz", chartName, version)
-	chartPath := s.GetChartPath(chartFileName)
+
+	chartPath := s.pathManager.GetChartPath(chartName, version)
 
 	// Vérifier si le chart existe
-	if !s.ChartExists(chartFileName) {
+	if !s.ChartExists(chartName, version) {
 		return fmt.Errorf("chart %s version %s not found", chartName, version)
 	}
 

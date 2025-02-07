@@ -6,7 +6,7 @@ RUN apk add --no-cache git
 WORKDIR /app
 
 # Copier d'abord les fichiers de dépendances
-COPY go.mod go.sum ./
+COPY src/go.mod src/go.sum ./
 
 # Télécharger les dépendances
 RUN go mod download
@@ -15,14 +15,14 @@ RUN go mod download
 RUN go install github.com/DataDog/orchestrion@latest
 
 # Copier le code source
-COPY . .
+COPY src/ .
 
 # Exécuter orchestrion pin
 RUN orchestrion pin
 
 # Construction
-RUN CGO_ENABLED=0 GOOS=linux go build -o mtls-server ./cmd/server/main.go
-# RUN orchestrion go build -o mtls-server ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o helm-portal ./cmd/server/main.go
+# RUN orchestrion go build -o helm-portal ./cmd/server/main.go
 
 # Image finale
 FROM alpine:latest AS production
@@ -33,7 +33,7 @@ RUN adduser -D app
 WORKDIR /app
 
 # Copier l'exécutable depuis le builder
-COPY --from=builder /app/mtls-server .
+COPY --from=builder /app/helm-portal .
 
 # Copier les certificats
 COPY certs/ ./certs/
@@ -46,4 +46,4 @@ USER app
 
 EXPOSE 8080
 
-CMD ["./mtls-server"]
+CMD ["./helm-portal"]

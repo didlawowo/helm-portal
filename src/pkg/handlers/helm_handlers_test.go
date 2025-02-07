@@ -9,24 +9,21 @@ import (
 
 	"testing"
 
+	"helm-portal/pkg/storage"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// MockChartService est un mock du service
-type MockChartService struct {
-	mock.Mock
-}
-
-// Implémentation des méthodes mock...
-
 func TestUploadChart(t *testing.T) {
 	// Setup
 	log := logrus.New()
 	mockService := new(MockChartService)
-	handler := NewChartHandler(mockService, log)
+	pathManager := storage.NewPathManager("./charts")
+	handler := NewHelmHandler(mockService, pathManager, log)
+
 	app := fiber.New()
 	app.Post("/charts", handler.UploadChart)
 

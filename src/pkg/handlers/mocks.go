@@ -2,7 +2,7 @@
 package handlers
 
 import (
-	services "helm-portal/pkg/services"
+	"helm-portal/pkg/models"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -28,9 +28,9 @@ func (m *MockChartService) DeleteChart(name string, version string) error {
 	return args.Error(0)
 }
 
-func (m *MockChartService) ListCharts() ([]services.ChartMetadata, error) {
+func (m *MockChartService) ListCharts() ([]models.ChartMetadata, error) {
 	args := m.Called()
-	return args.Get(0).([]services.ChartMetadata), args.Error(1)
+	return args.Get(0).([]models.ChartMetadata), args.Error(1)
 }
 
 func (m *MockChartService) ChartExists(name string) bool {

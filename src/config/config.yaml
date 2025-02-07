@@ -1,5 +1,8 @@
 server:
-  port: 8080
+  port: 3030
+  tls:
+    certFile: "certs/cert.pem"
+    keyFile: "certs/key.pem"
   host: "localhost"
 
 storage:

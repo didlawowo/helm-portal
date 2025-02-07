@@ -17,6 +17,18 @@ tasks:
     cmds:
     - docker compose up -d
 
+  test-upload-chart:
+    desc: Test upload chart
+    dir: src/test
+    cmds:
+    - http -f POST http://localhost:3030/chart chart@test-chart-0.1.0.tgz
+
+  test-delete-chart:
+    desc: Test Delete chart
+    dir: src/test
+    cmds:
+    - http DELETE http://localhost:3030/chart/test-chart version==0.1.0
+
 default:
   desc: List available tasks
   cmds:

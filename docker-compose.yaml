@@ -1,21 +1,41 @@
+version: '3.8'
+
 services:
-  helm-portal:
-    hostname: helm-portal
-    container_name: helm-portal
-    build: 
-      platforms:
-          - linux/arm64
-      context: src
-      dockerfile: Dockerfile
-      
-    environment:
-      JWT_SECRET_KEY: test-key
-    healthcheck:
-      test: ["executable", "arg"]
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
+  traefik:
+    image: traefik 
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=your@email.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
-      - "3030:3000"
- 
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - helm-network
+
+  helm-portal:
+    build: .
+    container_name: helm-portal
+    volumes:
+      - ./charts:/app/charts  # Pour persister les charts
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.helm.rule=Host(`helm.your-domain.com`)"
+      - "traefik.http.routers.helm.entrypoints=websecure"
+      - "traefik.http.routers.helm.tls.certresolver=myresolver"
+      - "traefik.http.services.helm.loadbalancer.server.port=3030"
+    networks:
+      - helm-network
+
+networks:
+  helm-network:
+    driver: bridge
