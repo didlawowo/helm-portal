@@ -54,25 +54,36 @@ func main() {
 	})
 
 	// Initialize handlers with logger
-	chartService := service.NewChartService(&config.Config{}, log)
+	cfg, err := config.LoadConfig("config/config.yaml")
+	if err != nil {
+		log.WithError(err).Fatal("Failed to load configuration")
+	}
+
+	tmpChartService := service.NewChartService(cfg, log, nil) // temporairement nil
+
+	indexService := service.NewIndexService(cfg, log, tmpChartService)
+	chartService := service.NewChartService(cfg, log, indexService)
+
 	chartHandler := handlers.NewChartHandler(chartService, log)
+	indexHandler := handlers.NewIndexHandler(indexService, log)
 	configHandler := handlers.NewConfigHandler(&config.Config{}, log)
+
 	// Setup routes
 	// add route to favicon
 	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
-		return c.SendFile("./static/ico.webp")
+		return c.SendFile("./views/static/ico.webp")
 	})
 
-	app.Get("/", chartHandler.Home)
-	app.Delete("/charts/:name", chartHandler.Delete)
+	app.Get("/", chartHandler.DisplayHome)
+	app.Delete("/charts/:name", chartHandler.DeleteChart)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
 	app.Post("/charts", chartHandler.UploadChart)
 	app.Get("/config", configHandler.GetConfig)
-	app.Get("/charts/:name/:version", chartHandler.Download)
-	app.Get("/index.yaml", chartHandler.GetIndex)
-	app.Get("/charts/:name", chartHandler.GetChart)
+	app.Get("/chart/:name/:version", chartHandler.DownloadChart)
+	app.Get("/index.yaml", indexHandler.GetIndex)
+	app.Get("/charts", chartHandler.GetChart)
 
 	// 🚀 Start server
 	port := ":3030"

@@ -4,8 +4,7 @@ package handlers
 
 import (
 	"io"
-	"os"
-	"path/filepath"
+
 	"strings"
 
 	service "helm-portal/pkg/services"
@@ -20,6 +19,11 @@ type ChartHandler struct {
 	log     *logrus.Logger
 }
 
+type IndexHandler struct {
+	service *service.IndexService
+	log     *logrus.Logger
+}
+
 // NewChartHandler creates a new handler instance
 func NewChartHandler(service *service.ChartService, logger *logrus.Logger) *ChartHandler {
 
@@ -29,26 +33,30 @@ func NewChartHandler(service *service.ChartService, logger *logrus.Logger) *Char
 	}
 }
 
-// GetIndex handles GET /index.yaml
-func (h *ChartHandler) GetIndex(c *fiber.Ctx) error {
-	// Get index file path
-	indexPath := filepath.Join(h.service.GetIndexPath())
+func NewIndexHandler(service *service.IndexService, logger *logrus.Logger) *IndexHandler {
 
-	// Log request with structured data
+	return &IndexHandler{
+		service: service,
+		log:     logger,
+	}
+}
+
+func (h *IndexHandler) GetIndex(c *fiber.Ctx) error {
+	indexPath := h.service.GetIndexPath()
+
 	h.log.WithFields(logrus.Fields{
 		"path": indexPath,
 		"ip":   c.IP(),
 	}).Info("Requesting index.yaml")
 
-	// Check if file exists
-	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		h.log.WithError(err).Warn("Index file not found")
-		return c.Status(404).SendString("Index not found")
+	// D'abord s'assurer que l'index existe
+	if err := h.service.EnsureIndexExists(); err != nil {
+		h.log.WithError(err).Error("Failed to ensure index exists")
+		return c.Status(500).SendString("Failed to create index")
 	}
 
-	// Send the file
-	return c.SendFile(filepath.Join(h.service.GetIndexPath()))
-
+	// Envoyer le fichier
+	return c.SendFile(indexPath)
 }
 
 func (h *ChartHandler) GetChart(c *fiber.Ctx) error {
@@ -98,7 +106,7 @@ func (h *ChartHandler) UploadChart(c *fiber.Ctx) error {
 	}
 
 	// Sauvegarder via le service
-	if err := h.service.SaveChart(chartData, file.Filename, c.BaseURL()); err != nil {
+	if err := h.service.SaveChart(chartData, file.Filename); err != nil {
 		h.log.WithError(err).Error("Failed to save chart")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to save chart"})
 	}
@@ -109,7 +117,7 @@ func (h *ChartHandler) UploadChart(c *fiber.Ctx) error {
 	})
 }
 
-func (h *ChartHandler) Download(c *fiber.Ctx) error {
+func (h *ChartHandler) DownloadChart(c *fiber.Ctx) error {
 	name := c.Params("name")
 	chart, err := h.service.GetChart(name)
 	if err != nil {
@@ -119,7 +127,7 @@ func (h *ChartHandler) Download(c *fiber.Ctx) error {
 	return c.Send(chart)
 }
 
-func (h *ChartHandler) Delete(c *fiber.Ctx) error {
+func (h *ChartHandler) DeleteChart(c *fiber.Ctx) error {
 	name := c.Params("name")
 	version := c.Query("version")
 	if err := h.service.DeleteChart(name, version); err != nil {
@@ -129,7 +137,7 @@ func (h *ChartHandler) Delete(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Chart deleted successfully"})
 }
 
-func (h *ChartHandler) Home(c *fiber.Ctx) error {
+func (h *ChartHandler) DisplayHome(c *fiber.Ctx) error {
 	charts, err := h.service.ListCharts()
 	if err != nil {
 		h.log.WithError(err).Error("Failed to list charts")

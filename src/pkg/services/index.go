@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
+	"helm-portal/config"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,8 +35,42 @@ type ChartVersion struct {
 	URLs        []string  `yaml:"urls"`   // URLs de téléchargement
 }
 
+type IndexService struct {
+	storagePath    string
+	config         *config.Config
+	log            *logrus.Logger
+	baseURL        string
+	chartExtractor ChartExtractor
+}
+
+func NewIndexService(config *config.Config, log *logrus.Logger, chartExtractor ChartExtractor) *IndexService {
+	if err := os.MkdirAll(config.Storage.Path, 0755); err != nil {
+		log.WithError(err).Error("❌ Impossible de créer le dossier de stockage")
+	}
+
+	return &IndexService{
+		storagePath:    config.Storage.Path,
+		config:         config,
+		log:            log,
+		baseURL:        config.Helm.BaseURL,
+		chartExtractor: chartExtractor,
+	}
+}
+
+func (s *IndexService) EnsureIndexExists() error {
+	indexPath := filepath.Join(s.storagePath, "index.yaml")
+	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
+		return s.UpdateIndex()
+	}
+	return nil
+}
+
+func (s *IndexService) GetIndexPath() string {
+	return filepath.Join(s.storagePath, "index.yaml")
+}
+
 // generateIndex crée ou met à jour le fichier index.yaml
-func (s *ChartService) generateIndex(baseURL string) error {
+func (s *IndexService) UpdateIndex() error {
 	s.log.Info("🔄 Génération de l'index.yaml")
 
 	// Créer un nouvel index
@@ -67,7 +102,7 @@ func (s *ChartService) generateIndex(baseURL string) error {
 		}
 
 		// Extraire les métadonnées
-		metadata, err := s.extractChartMetadata(chartData)
+		metadata, err := s.chartExtractor.ExtractChartMetadata(chartData)
 		if err != nil {
 			s.log.WithError(err).WithField("file", file.Name()).Error("❌ Erreur extraction métadonnées")
 			continue
@@ -78,7 +113,7 @@ func (s *ChartService) generateIndex(baseURL string) error {
 		digestStr := hex.EncodeToString(digest[:])
 
 		// Créer l'URL de téléchargement
-		downloadURL := fmt.Sprintf("%s/charts/%s", baseURL, file.Name())
+		downloadURL := fmt.Sprintf("%s/charts/%s", s.baseURL, file.Name())
 
 		// Créer la version du chart
 		chartVersion := &ChartVersion{
@@ -119,9 +154,4 @@ func (s *ChartService) generateIndex(baseURL string) error {
 
 	s.log.Info("✅ Index.yaml généré avec succès")
 	return nil
-}
-
-// UpdateIndex met à jour l'index avec la nouvelle baseURL
-func (s *ChartService) UpdateIndex(baseURL string) error {
-	return s.generateIndex(baseURL)
 }

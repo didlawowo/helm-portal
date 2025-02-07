@@ -36,26 +36,29 @@ type ChartMetadata struct {
 
 // ChartService handles chart operations
 type ChartService struct {
-	storagePath string
-	config      *config.Config
-	log         *logrus.Logger
-	baseURL     string
-	// maxChartSize int64
+	storagePath  string
+	config       *config.Config
+	log          *logrus.Logger
+	baseURL      string
+	indexUpdater IndexUpdater
 }
 
 // NewChartService creates a new chart service
-func NewChartService(config *config.Config, log *logrus.Logger) *ChartService {
+func NewChartService(config *config.Config, log *logrus.Logger, indexUpdater IndexUpdater) *ChartService {
+	if err := os.MkdirAll(config.Storage.Path, 0755); err != nil {
+		log.WithError(err).Error("❌ Impossible de créer le dossier de stockage")
+	}
 	return &ChartService{
-		storagePath: config.Storage.Path,
-		config:      config,
-		log:         log,
-		baseURL:     config.Helm.BaseURL,
-		// maxChartSize: config.Helm.MaxChartSize,
+		storagePath:  config.Storage.Path,
+		config:       config,
+		log:          log,
+		baseURL:      config.Helm.BaseURL,
+		indexUpdater: indexUpdater,
 	}
 }
 
 // SaveChart saves an uploaded chart file
-func (s *ChartService) SaveChart(chartData []byte, filename string, baseURL string) error {
+func (s *ChartService) SaveChart(chartData []byte, filename string) error {
 	// ✨ Create charts directory if not exists
 	chartsDir := filepath.Join(s.storagePath, "charts")
 	if err := os.MkdirAll(chartsDir, 0755); err != nil {
@@ -69,12 +72,12 @@ func (s *ChartService) SaveChart(chartData []byte, filename string, baseURL stri
 	}
 
 	// 📝 Extract and validate metadata
-	metadata, err := s.extractChartMetadata(chartData)
+	metadata, err := s.ExtractChartMetadata(chartData)
 	if err != nil {
 		return fmt.Errorf("❌ failed to extract chart metadata: %w", err)
 	}
 
-	if err := s.UpdateIndex(baseURL); err != nil {
+	if err := s.indexUpdater.UpdateIndex(); err != nil {
 		s.log.WithError(err).Error("❌ Échec mise à jour index")
 		return fmt.Errorf("échec mise à jour index: %w", err)
 	}
@@ -89,7 +92,7 @@ func (s *ChartService) SaveChart(chartData []byte, filename string, baseURL stri
 }
 
 // extractChartMetadata extracts Chart.yaml from the tgz file
-func (s *ChartService) extractChartMetadata(chartData []byte) (*ChartMetadata, error) {
+func (s *ChartService) ExtractChartMetadata(chartData []byte) (*ChartMetadata, error) {
 	// 📦 Read the gzip file
 	gr, err := gzip.NewReader(bytes.NewReader(chartData))
 	if err != nil {
@@ -131,30 +134,6 @@ func (s *ChartService) extractChartMetadata(chartData []byte) (*ChartMetadata, e
 	return nil, fmt.Errorf("Chart.yaml not found in chart archive")
 }
 
-// updateIndex rebuilds the index.yaml file
-func (s *ChartService) updateIndex() error {
-	// 🏗️ Implement index.yaml generation
-	// This is a placeholder for now
-	index := map[string]interface{}{
-		"apiVersion": "v1",
-		"entries":    make(map[string]interface{}),
-	}
-
-	// Convert to YAML
-	indexYaml, err := yaml.Marshal(index)
-	if err != nil {
-		return err
-	}
-
-	// Save index file
-	indexPath := filepath.Join(s.storagePath, "index.yaml")
-	if err := os.WriteFile(indexPath, indexYaml, 0644); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // ListCharts returns all available charts
 func (s *ChartService) ListCharts() ([]ChartMetadata, error) {
 	chartsDir := filepath.Join(s.storagePath, "charts")
@@ -180,7 +159,7 @@ func (s *ChartService) ListCharts() ([]ChartMetadata, error) {
 		}
 
 		// Extract metadata
-		metadata, err := s.extractChartMetadata(chartData)
+		metadata, err := s.ExtractChartMetadata(chartData)
 		if err != nil {
 			s.log.WithError(err).WithField("file", file.Name()).Error("Failed to extract metadata")
 			continue
@@ -190,23 +169,6 @@ func (s *ChartService) ListCharts() ([]ChartMetadata, error) {
 	}
 
 	return charts, nil
-}
-
-func (s *ChartService) RegenerateIndex(baseURL string) error {
-	s.log.Info("🔄 Démarrage régénération index")
-	return s.UpdateIndex(baseURL)
-}
-
-func (s *ChartService) EnsureIndexExists(baseURL string) error {
-	indexPath := filepath.Join(s.storagePath, "index.yaml")
-	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		return s.UpdateIndex(baseURL)
-	}
-	return nil
-}
-
-func (s *ChartService) GetIndexPath() string {
-	return filepath.Join(s.storagePath, "index.yaml")
 }
 
 func (s *ChartService) GetChartPath(chartName string) string {
@@ -219,7 +181,7 @@ func (s *ChartService) ChartExists(chartName string) bool {
 }
 
 func (s *ChartService) IndexExists() bool {
-	_, err := os.Stat(s.GetIndexPath())
+	_, err := os.Stat(filepath.Join(s.storagePath, "index.yaml"))
 	return !os.IsNotExist(err)
 }
 
@@ -244,5 +206,5 @@ func (s *ChartService) DeleteChart(chartName string, version string) error {
 	}
 
 	// Mettre à jour l'index
-	return s.UpdateIndex(s.baseURL)
+	return s.indexUpdater.UpdateIndex()
 }

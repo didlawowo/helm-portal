@@ -3,7 +3,7 @@ server:
   host: "localhost"
 
 storage:
-  path: "/path/to/storage"
+  path: "charts"
 
 helm:
   baseURL: "https://localhost:3030"
