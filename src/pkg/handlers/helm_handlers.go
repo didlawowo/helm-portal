@@ -22,6 +22,12 @@ type HelmHandler struct {
 	pathManager *storage.PathManager
 }
 
+type IndexHandler struct {
+	service     interfaces.ChartServiceInterface
+	log         *logrus.Logger
+	pathManager *storage.PathManager
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
@@ -34,6 +40,15 @@ func sendError(c *fiber.Ctx, status int, message string) error {
 func NewHelmHandler(service interfaces.ChartServiceInterface, pathManager *storage.PathManager, logger *logrus.Logger) *HelmHandler {
 
 	return &HelmHandler{
+		service:     service,
+		log:         logger,
+		pathManager: pathManager,
+	}
+}
+
+func NewIndexHandler(service interfaces.ChartServiceInterface, pathManager *storage.PathManager, logger *logrus.Logger) *IndexHandler {
+
+	return &IndexHandler{
 		service:     service,
 		log:         logger,
 		pathManager: pathManager,
@@ -57,7 +72,7 @@ func ValidateChartUpload() fiber.Handler {
 	}
 }
 
-func (h *HelmHandler) GetIndex(c *fiber.Ctx) error {
+func (h *IndexHandler) GetIndex(c *fiber.Ctx) error {
 	indexPath := h.pathManager.GetIndexPath()
 
 	h.log.WithFields(logrus.Fields{

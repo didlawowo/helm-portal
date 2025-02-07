@@ -10,7 +10,7 @@
 <body class="bg-gray-100">
     <nav class="bg-blue-600 text-white p-4">
         <div class="container mx-auto">
-            <h1 class="text-2xl font-bold">Helm Chart Repository</h1>
+            <h1 class="text-2xl font-bold">Helm Portal</h1>
         </div>
     </nav>
 
@@ -30,6 +30,12 @@
                     <a href="/chart/{{.Name}}/{{.Version}}"
                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                         Download
+                    </a>
+                </div>
+                <div class="mt-4 flex justify-between items-center">
+                    <a href="/chart/{{.Name}}/{{.Version}}" method="DELETE"
+                       class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Delete
                     </a>
                 </div>
             </div>

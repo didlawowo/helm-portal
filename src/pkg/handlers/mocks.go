@@ -18,7 +18,7 @@ func (m *MockChartService) SaveChart(chartData []byte, filename string) error {
 	return args.Error(0)
 }
 
-func (m *MockChartService) GetChart(name string) ([]byte, error) {
+func (m *MockChartService) GetChart(name string, version string) ([]byte, error) {
 	args := m.Called(name)
 	return args.Get(0).([]byte), args.Error(1)
 }
@@ -33,7 +33,7 @@ func (m *MockChartService) ListCharts() ([]models.ChartMetadata, error) {
 	return args.Get(0).([]models.ChartMetadata), args.Error(1)
 }
 
-func (m *MockChartService) ChartExists(name string) bool {
+func (m *MockChartService) ChartExists(name string, version string) bool {
 	args := m.Called(name)
 	return args.Bool(0)
 }

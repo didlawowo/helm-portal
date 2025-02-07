@@ -21,8 +21,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// ChartMetadata represents the Chart.yaml file structure
-
 type IndexUpdater interface {
 	UpdateIndex() error
 	EnsureIndexExists() error

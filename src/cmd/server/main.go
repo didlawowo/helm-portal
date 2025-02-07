@@ -36,12 +36,13 @@ func setupHandlers(
 	indexService interfaces.IndexServiceInterface,
 	pathManager *storage.PathManager,
 	log *logrus.Logger,
-) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler) {
+) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler) {
 	helmHandler := handlers.NewHelmHandler(chartService, pathManager, log)
 	ociHandler := handlers.NewOCIHandler(chartService, log)
 	configHandler := handlers.NewConfigHandler(&config.Config{}, log)
+	indexHandler := handlers.NewIndexHandler(chartService, pathManager, log)
 
-	return helmHandler, ociHandler, configHandler
+	return helmHandler, ociHandler, configHandler, indexHandler
 }
 
 func main() {
@@ -64,7 +65,7 @@ func main() {
 	chartService, indexService := setupServices(cfg, log)
 
 	// Handlers
-	helmHandler, ociHandler, configHandler := setupHandlers(
+	helmHandler, ociHandler, configHandler, indexHandler := setupHandlers(
 		chartService,
 		indexService,
 		pathManager,
@@ -110,11 +111,11 @@ func main() {
 
 	// Routes Helm
 	app.Get("/", helmHandler.DisplayHome)
-	app.Delete("/chart/:name", helmHandler.DeleteChart)
+	app.Delete("/chart/:name/:version", helmHandler.DeleteChart)
 	app.Post("/chart", helmHandler.UploadChart)
 	app.Get("/config", configHandler.GetConfig)
 	app.Get("/chart/:name/:version", helmHandler.DownloadChart)
-	app.Get("/index.yaml", helmHandler.GetIndex)
+	app.Get("/index.yaml", indexHandler.GetIndex)
 	app.Get("/charts", helmHandler.ListCharts)
 
 	// Routes OCI
