@@ -146,10 +146,12 @@ func (h *HelmHandler) UploadChart(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to save chart"})
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Chart uploaded successfully",
-		"name":    file.Filename,
-	})
+	// return c.JSON(fiber.Map{
+	// 	"message": "Chart uploaded successfully",
+	// 	"name":    file.Filename,
+	// })
+	return c.Redirect("/", fiber.StatusSeeOther) // 303 See Other est le code approprié pour une redirection POST→GET
+
 }
 
 func (h *HelmHandler) DownloadChart(c *fiber.Ctx) error {
@@ -166,7 +168,7 @@ func (h *HelmHandler) DownloadChart(c *fiber.Ctx) error {
 
 func (h *HelmHandler) DeleteChart(c *fiber.Ctx) error {
 	name := c.Params("name")
-	version := c.Query("version")
+	version := c.Params("version")
 	if err := h.service.DeleteChart(name, version); err != nil {
 		h.log.WithError(err).Error("Failed to delete chart")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to delete chart"})
@@ -186,5 +188,30 @@ func (h *HelmHandler) DisplayHome(c *fiber.Ctx) error {
 	return c.Render("home", fiber.Map{
 		"Charts": charts,
 		"Title":  "Helm Charts Repository",
+	})
+}
+
+func (h *HelmHandler) DisplayChart(c *fiber.Ctx) error {
+	name := c.Params("name")
+	version := c.Params("version")
+	chart, err := h.service.GetChartDetails(name, version)
+	if err != nil {
+		h.log.WithError(err).Error("Failed to get chart")
+		return c.Status(500).Render("error", fiber.Map{
+			"Error": "Failed to load chart",
+		})
+	}
+	chartDetails := fiber.Map{
+		"Name":        chart.Name,
+		"Version":     chart.Version,
+		"AppVersion":  chart.AppVersion,
+		"Description": chart.Description,
+		"Type":        chart.Type,
+
+		"Dependencies": chart.Dependencies,
+	}
+	return c.Render("details", fiber.Map{
+		"Chart": chartDetails,
+		"Title": "Chart Details",
 	})
 }

@@ -10,6 +10,7 @@ type ChartServiceInterface interface {
 	ListCharts() ([]models.ChartMetadata, error)
 	ChartExists(name, version string) bool
 	GetChart(name, version string) ([]byte, error)
+	GetChartDetails(name, version string) (*models.ChartMetadata, error)
 	DeleteChart(name, version string) error
 	GetPathManager() *storage.PathManager
 	ExtractChartMetadata(chartData []byte) (*models.ChartMetadata, error)

@@ -100,6 +100,7 @@ func main() {
 		}).Info("Incoming request")
 		return c.Next()
 	})
+	app.Static("/static", "./views/static")
 
 	// Routes
 	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
@@ -111,6 +112,7 @@ func main() {
 
 	// Routes Helm
 	app.Get("/", helmHandler.DisplayHome)
+	app.Get("/chart/:name/:version/details", helmHandler.DisplayChart)
 	app.Delete("/chart/:name/:version", helmHandler.DeleteChart)
 	app.Post("/chart", helmHandler.UploadChart)
 	app.Get("/config", configHandler.GetConfig)

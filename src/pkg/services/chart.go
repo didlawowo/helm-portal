@@ -173,14 +173,35 @@ func (s *ChartService) ChartExists(chartName string, version string) bool {
 }
 
 func (s *ChartService) GetChart(chartName string, version string) ([]byte, error) {
-	fileName := fmt.Sprintf("%s-%s.tgz", chartName, version)
-	chartPath := filepath.Join(s.pathManager.GetGlobalPath(), fileName)
-
+	chartPath := s.pathManager.GetChartPath(chartName, version)
+	// Vérifier si le chart existe
+	if !s.ChartExists(chartName, version) {
+		return nil, fmt.Errorf("chart %s version %s not found", chartName, version)
+	}
+	// Lire le fichier
 	return os.ReadFile(chartPath)
 }
 
-func (s *ChartService) DeleteChart(chartName string, version string) error {
+func (s *ChartService) GetChartDetails(chartName string, version string) (*models.ChartMetadata, error) {
+	chartPath := s.pathManager.GetChartPath(chartName, version)
+	// Vérifier si le chart existe
+	if !s.ChartExists(chartName, version) {
+		return nil, fmt.Errorf("chart %s version %s not found", chartName, version)
+	}
+	// Lire le fichier
+	chartData, err := os.ReadFile(chartPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read chart: %w", err)
+	}
+	// Extract metadata
+	metadata, err := s.ExtractChartMetadata(chartData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract metadata: %w", err)
+	}
+	return metadata, nil
+}
 
+func (s *ChartService) DeleteChart(chartName string, version string) error {
 	chartPath := s.pathManager.GetChartPath(chartName, version)
 
 	// Vérifier si le chart existe

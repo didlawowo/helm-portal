@@ -1,12 +1,16 @@
 <!-- views/home.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/js/main.js"></script>
+
 </head>
+
 <body class="bg-gray-100">
     <nav class="bg-blue-600 text-white p-4">
         <div class="container mx-auto">
@@ -26,18 +30,22 @@
                     {{end}}
                 </div>
                 <p class="mt-4 text-gray-700">{{.Description}}</p>
-                <div class="mt-4 flex justify-between items-center">
+                <div class="mt-4 flex gap-4 justify-between items-center">
                     <a href="/chart/{{.Name}}/{{.Version}}"
-                       class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                         Download
                     </a>
-                </div>
-                <div class="mt-4 flex justify-between items-center">
-                    <a href="/chart/{{.Name}}/{{.Version}}" method="DELETE"
-                       class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+              
+                    <button onclick="deleteChart('{{.Name}}', '{{.Version}}')"
+                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
                         Delete
-                    </a>
+                    </button>
+                    <a href="/chart/{{.Name}}/{{.Version}}/details"
+                    class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center flex-1">
+                     Details
+                 </a>
                 </div>
+                
             </div>
             {{else}}
             <div class="col-span-full text-center py-8">
@@ -50,16 +58,14 @@
         <!-- Upload Form -->
         <div class="mt-8 bg-white rounded-lg shadow p-6">
             <h2 class="text-xl font-bold mb-4">Upload New Chart</h2>
-            <form action="/chart" method="POST" enctype="multipart/form-data" 
-                  class="flex flex-col md:flex-row gap-4">
-                <input type="file" name="chart" accept=".tgz" required
-                       class="flex-1 border rounded p-2">
-                <button type="submit" 
-                        class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">
+            <form action="/chart" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row gap-4">
+                <input type="file" name="chart" accept=".tgz" required class="flex-1 border rounded p-2">
+                <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">
                     Upload
                 </button>
             </form>
         </div>
     </main>
 </body>
+
 </html>
