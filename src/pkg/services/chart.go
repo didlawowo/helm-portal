@@ -6,6 +6,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"os/exec"
 
 	"fmt"
 	"io"
@@ -216,4 +217,80 @@ func (s *ChartService) DeleteChart(chartName string, version string) error {
 
 	// Mettre à jour l'index
 	return s.indexUpdater.UpdateIndex()
+}
+
+func (s *ChartService) CreateChartTgz(chartName string, version string) error {
+	// Chemin où seront assemblés les blobs
+	chartDir := s.pathManager.GetChartPath(chartName, version)
+	blobsDir := s.pathManager.GetBlobPath(chartName)
+
+	// Créer un répertoire temporaire pour l'assemblage
+	tempDir, err := os.MkdirTemp("", "chart-assemble-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Lister tous les blobs pour ce chart
+	blobFiles, err := filepath.Glob(filepath.Join(blobsDir, "sha256:*"))
+	if err != nil {
+		return err
+	}
+
+	// Créer la structure de chart
+	if err := os.MkdirAll(filepath.Join(tempDir, "templates"), 0755); err != nil {
+		return err
+	}
+
+	// Copier les blobs dans le répertoire temporaire
+	for _, blobPath := range blobFiles {
+		destPath := filepath.Join(tempDir, "templates", filepath.Base(blobPath))
+		if err := copyFile(blobPath, destPath); err != nil {
+			return err
+		}
+	}
+
+	// Créer le fichier Chart.yaml
+	chartYamlContent := fmt.Sprintf(`apiVersion: v2
+name: %s
+version: %s
+description: Automatically generated chart
+`, chartName, version)
+
+	if err := os.WriteFile(filepath.Join(tempDir, "Chart.yaml"), []byte(chartYamlContent), 0644); err != nil {
+		return err
+	}
+
+	// Créer le .tgz
+	outputTgzPath := filepath.Join(chartDir, fmt.Sprintf("%s-%s.tgz", chartName, version))
+	cmd := exec.Command("tar", "-czf", outputTgzPath, "-C", tempDir, ".")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	s.log.WithFields(logrus.Fields{
+		"chartName": chartName,
+		"version":   version,
+		"tgzPath":   outputTgzPath,
+	}).Info("Chart .tgz created successfully")
+
+	return nil
+}
+
+// Fonction utilitaire pour copier des fichiers
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
 }

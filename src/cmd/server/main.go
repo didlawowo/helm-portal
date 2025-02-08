@@ -124,7 +124,13 @@ func main() {
 	app.Get("/v2/", ociHandler.HandleOCIAPI)
 	app.Get("/v2/_catalog", ociHandler.HandleCatalog)
 	app.Head("/v2/:name/manifests/:reference", ociHandler.HandleManifest)
-	app.Put("/v2/:name/blobs/uploads/:uuid", ociHandler.PushBlob)
+	app.Get("/v2/:name/manifests/:reference", ociHandler.HandleManifest)
+	app.Put("/v2/:name/manifests/:reference", ociHandler.PutManifest)
+	app.Put("/v2/:name/blobs/:digest", ociHandler.PushBlob)
+	app.Post("/v2/:name/blobs/uploads/", ociHandler.InitiateUpload)
+	app.Patch("/v2/:name/blobs/uploads/:uuid", ociHandler.HandlePatch)
+	app.Put("/v2/:name/blobs/uploads/:uuid", ociHandler.CompleteUpload)
+	app.Head("/v2/:name/blobs/:digest", ociHandler.CheckBlob)
 
 	// Démarrage du serveur
 	port := ":3030"
