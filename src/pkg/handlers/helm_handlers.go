@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"helm-portal/pkg/interfaces"
-
 	storage "helm-portal/pkg/storage"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,6 +29,28 @@ type IndexHandler struct {
 
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+// Dans votre handler
+func (h *HelmHandler) GetChartVersions(c *fiber.Ctx) error {
+	name := c.Params("name")
+	chartGroups, err := h.service.ListCharts()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "Failed to fetch chart versions",
+		})
+	}
+
+	// Trouver le groupe correspondant au nom
+	for _, group := range chartGroups {
+		if group.Name == name {
+			return c.JSON(group.Versions)
+		}
+	}
+
+	return c.Status(404).JSON(fiber.Map{
+		"error": "Chart not found",
+	})
 }
 
 func sendError(c *fiber.Ctx, status int, message string) error {
@@ -177,7 +198,7 @@ func (h *HelmHandler) DeleteChart(c *fiber.Ctx) error {
 }
 
 func (h *HelmHandler) DisplayHome(c *fiber.Ctx) error {
-	charts, err := h.service.ListCharts()
+	chartGroups, err := h.service.ListCharts()
 	if err != nil {
 		h.log.WithError(err).Error("Failed to list charts")
 		return c.Status(500).Render("error", fiber.Map{
@@ -185,8 +206,10 @@ func (h *HelmHandler) DisplayHome(c *fiber.Ctx) error {
 		})
 	}
 
+	// Grouper les charts par nom
+
 	return c.Render("home", fiber.Map{
-		"Charts": charts,
+		"Charts": chartGroups,
 		"Title":  "Helm Charts Repository",
 	})
 }

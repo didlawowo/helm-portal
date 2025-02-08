@@ -118,6 +118,7 @@ func main() {
 	app.Get("/chart/:name/:version", helmHandler.DownloadChart)
 	app.Get("/index.yaml", indexHandler.GetIndex)
 	app.Get("/charts", helmHandler.ListCharts)
+	app.Get("/chart/:name/versions", helmHandler.GetChartVersions)
 
 	// Routes OCI
 	app.Get("/v2/", ociHandler.HandleOCIAPI)

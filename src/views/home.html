@@ -7,7 +7,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
 </head>
+<style>
+    .icon-info {
+        color: #2563eb;
+    }
+
+    .icon-download {
+        color: #16a34a;
+    }
+
+    .icon-delete {
+        color: #dc2626;
+    }
+
+    .tooltip-trigger {
+        position: relative;
+    }
+
+    .tooltip-trigger:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 4px 8px;
+        background-color: #333;
+        color: white;
+        font-size: 12px;
+        border-radius: 4px;
+        white-space: nowrap;
+        z-index: 10;
+    }
+
+    /* Retirer le td superflu */
+    .material-icons {
+        cursor: pointer;
+        vertical-align: middle;
+        /* Pour un meilleur alignement */
+    }
+</style>
 
 <body class="bg-gray-100">
     <nav class="bg-blue-600 text-white p-4 shadow-lg">
@@ -17,73 +58,69 @@
     </nav>
 
     <main class="container mx-auto p-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {{range .Charts}}
-            <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-full">
-                <div class="flex-1">
-                    <h2 class="text-xl font-bold text-blue-600 mb-3">{{.Name}}</h2>
-                    <div class="space-y-2 text-sm text-gray-600">
-                        <p><span class="font-semibold">Version:</span> {{.Version}}</p>
-                        {{if .AppVersion}}
-                        <p><span class="font-semibold">App Version:</span> {{.AppVersion}}</p>
-                        {{end}}
-                    </div>
-                    <p class="mt-4 text-gray-700">{{.Description}}</p>
-                </div>
-
-                <div class="mt-6 flex flex-row gap-3 justify-between items-center">
-                    <a href="/chart/{{.Name}}/{{.Version}}"
-                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center flex-1 transition-colors">
-                        Download
-                    </a>
-                    <button onclick="deleteChart('{{.Name}}', '{{.Version}}')"
-                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-center flex-1 transition-colors">
-                        Delete
-                    </button>
-                    <a href="/chart/{{.Name}}/{{.Version}}/details"
-                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center flex-1 transition-colors">
-                        Details
-                    </a>
-                </div>
-            </div>
-            {{end}}
-        </div>
-
         <!-- Upload Section -->
-        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+        <div class="mt-8 bg-white rounded-lg shadow-md p-2 m-2">
             <h2 class="text-xl font-bold mb-4">Upload New Chart</h2>
             <form action="/chart" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row gap-4">
                 <input type="file" name="chart" accept=".tgz" required class="flex-1 border rounded p-2 file:mr-4 file:py-2 file:px-4
-                              file:rounded file:border-0 file:bg-blue-500 file:text-white
-                              hover:file:bg-blue-600 cursor-pointer">
+                                      file:rounded file:border-0 file:bg-blue-500 file:text-white
+                                      hover:file:bg-blue-600 cursor-pointer">
                 <button type="submit"
-                    class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition-colors">
+                    class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
                     Upload
                 </button>
             </form>
         </div>
+        <!-- List Charts Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {{range .Charts}}
+            <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[200px]" data-chart-name="{{.Name}}">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-blue-600">{{.Name}}</h2>
+                        <select class="mt-2 text-sm border rounded p-1" onchange="switchVersion('{{.Name}}', this.value)">
+                            {{$name := .Name}}
+                            {{range .Versions}}
+                            <option value="{{.Version}}">Version: {{.Version}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        {{with index .Versions 0}}  <!-- Utilise la première version pour les URLs initiales -->
+                        <a href="/chart/{{$name}}/{{.Version}}/details" 
+                           class="tooltip-trigger"
+                           data-tooltip="View chart details">
+                            <i class="material-icons icon-info">info</i>
+                        </a>
+                        <a href="/chart/{{$name}}/{{.Version}}" 
+                           class="tooltip-trigger"
+                           data-tooltip="Download chart package">
+                            <i class="material-icons icon-download">download</i>
+                        </a>
+                        <a href="#" 
+                           onclick="deleteChart('{{$name}}', '{{.Version}}')" 
+                           class="tooltip-trigger"
+                           data-tooltip="Delete this version">
+                            <i class="material-icons icon-delete">delete</i>
+                        </a>
+                        {{end}}
+                    </div>
+                </div>
+        
+                <div class="version-details flex-1 overflow-hidden">
+                    {{with index .Versions 0}}  <!-- Affiche les détails de la première version -->
+                    <div class="text-sm text-gray-600 mb-2">
+                        <p><span class="font-semibold">App Version:</span> {{.AppVersion}}</p>
+                    </div>
+                    <p class="text-gray-700 description line-clamp-4">{{.Description}}</p>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+        </div>
     </main>
 
-    <script>
-        async function deleteChart(name, version) {
-            if (!confirm('Are you sure you want to delete this chart?')) {
-                return;
-            }
-            try {
-                const response = await fetch(`/chart/${name}/${version}`, {
-                    method: 'DELETE',
-                });
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    alert('Failed to delete chart');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error deleting chart');
-            }
-        }
-    </script>
 </body>
+<script src="/static/js/main.js"></script>
 
 </html>
