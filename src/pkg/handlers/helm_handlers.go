@@ -191,7 +191,7 @@ func (h *HelmHandler) DisplayHome(c *fiber.Ctx) error {
 	})
 }
 
-func (h *HelmHandler) DisplayChart(c *fiber.Ctx) error {
+func (h *HelmHandler) DisplayChartDetails(c *fiber.Ctx) error {
 	name := c.Params("name")
 	version := c.Params("version")
 	chart, err := h.service.GetChartDetails(name, version)

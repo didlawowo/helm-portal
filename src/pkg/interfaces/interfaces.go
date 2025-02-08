@@ -14,7 +14,7 @@ type ChartServiceInterface interface {
 	DeleteChart(name, version string) error
 	GetPathManager() *storage.PathManager
 	ExtractChartMetadata(chartData []byte) (*models.ChartMetadata, error)
-	CreateChartTgz(chartMetadata *models.ChartMetadata, chartData []byte) ([]byte, error)
+	// CreateChartTgz(chartMetadata *models.ChartMetadata, chartData []byte) ([]byte, error)
 }
 
 type IndexServiceInterface interface {

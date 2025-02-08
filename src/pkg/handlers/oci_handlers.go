@@ -3,10 +3,11 @@ package handlers
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 
 	interfaces "helm-portal/pkg/interfaces"
-	"helm-portal/pkg/models"
+	// "helm-portal/pkg/models"
 	storage "helm-portal/pkg/storage"
 
 	"os"
@@ -186,7 +187,7 @@ func (h *OCIHandler) CompleteUpload(c *fiber.Ctx) error {
 	// Déplacer le fichier temporaire vers son emplacement final
 	tempPath := h.pathManager.GetTempPath(uuid)
 	finalPath := h.pathManager.GetBlobPath(digest)
-	version := c.Query("version")
+	// version := c.Query("version")
 	if len(c.Body()) > 0 {
 
 		h.log.WithFields(logrus.Fields{
@@ -209,10 +210,10 @@ func (h *OCIHandler) CompleteUpload(c *fiber.Ctx) error {
 		h.log.Error("❌ Erreur finalisation upload: ", err)
 		return c.SendStatus(500)
 	}
-	h.service.CreateChartTgz(&models.ChartMetadata{
-		Name:    name,
-		Version: version,
-	}, c.Body())
+	// h.service.CreateChartTgz(&models.ChartMetadata{
+	// 	Name:    name,
+	// 	Version: version,
+	// }, c.Body())
 
 	c.Set("Docker-Content-Digest", digest) // Ajoutez cette ligne
 
@@ -241,6 +242,45 @@ func (h *OCIHandler) PutManifest(c *fiber.Ctx) error {
 	name := c.Params("name")
 	reference := c.Params("reference")
 
+	// Décoder le manifest pour extraire les infos du chart
+	var manifest OCIManifest
+	if err := json.Unmarshal(c.Body(), &manifest); err != nil {
+		h.log.WithError(err).Error("❌ Erreur parsing manifest")
+		return c.SendStatus(500)
+	}
+
+	// Trouver le layer qui contient le chart
+	var chartLayer *struct {
+		MediaType string `json:"mediaType"`
+		Digest    string `json:"digest"`
+		Size      int    `json:"size"`
+	}
+
+	for _, layer := range manifest.Layers {
+		if layer.MediaType == "application/vnd.cncf.helm.chart.content.v1.tar+gzip" {
+			chartLayer = &layer
+			break
+		}
+	}
+
+	if chartLayer != nil {
+		// Récupérer le contenu du chart depuis le blob
+		chartData, err := h.getBlobByDigest(chartLayer.Digest)
+		if err != nil {
+			h.log.WithError(err).Error("❌ Erreur lecture chart data")
+			return c.SendStatus(500)
+		}
+
+		// Sauvegarder le chart
+		fileName := fmt.Sprintf("%s-%s.tgz", name, reference)
+		if err := h.service.SaveChart(chartData, fileName); err != nil {
+			h.log.WithError(err).Error("❌ Erreur sauvegarde chart")
+			return c.SendStatus(500)
+		}
+	} else {
+		h.log.Error("❌ Layer du chart non trouvé")
+		return c.SendStatus(500)
+	}
 	// Sauvegarder le manifest qui contient les métadonnées du chart
 	manifestData := c.Body()
 	manifestPath := h.pathManager.GetManifestPath(name, reference)

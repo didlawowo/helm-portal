@@ -11,7 +11,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/sirupsen/logrus"
-	// ... autres imports
 )
 
 // setupServices initialise et configure tous les services
@@ -112,7 +111,7 @@ func main() {
 
 	// Routes Helm
 	app.Get("/", helmHandler.DisplayHome)
-	app.Get("/chart/:name/:version/details", helmHandler.DisplayChart)
+	app.Get("/chart/:name/:version/details", helmHandler.DisplayChartDetails)
 	app.Delete("/chart/:name/:version", helmHandler.DeleteChart)
 	app.Post("/chart", helmHandler.UploadChart)
 	app.Get("/config", configHandler.GetConfig)
