@@ -2,10 +2,12 @@
 package storage
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -21,6 +23,7 @@ func NewPathManager(basePath string) *PathManager {
 		"temp",  // Pour les uploads temporaires
 		"blobs", // Pour les blobs
 		"manifests",
+		"charts", // Pour les charts
 	}
 
 	for _, dir := range dirs {
@@ -47,6 +50,7 @@ func (pm *PathManager) GetBlobPath(digest string) string {
 }
 
 func (pm *PathManager) GetManifestPath(name, reference string) string {
+	reference = reference + ".json"
 	return filepath.Join(pm.baseStoragePath, "manifests", name, reference)
 }
 
@@ -56,6 +60,45 @@ func (pm *PathManager) GetChartPath(name string, version string) string {
 	logrus.Infof("Chart path: %s", chartPath)
 	return chartPath
 }
+
+func (pm *PathManager) FindManifestByDigest(chartName string, digest string) string {
+	// 🔍 Remove sha256: prefix if present
+	digest = strings.TrimPrefix(digest, "sha256:")
+
+	// 📂 Root charts directory
+	chartsDir := filepath.Join(pm.GetGlobalPath(), chartName)
+
+	// Lire les manifests de ce chart
+	manifests, err := os.ReadDir(chartsDir)
+	if err != nil {
+		return ""
+	}
+
+	// Pour chaque manifest
+	for _, manifest := range manifests {
+		// Skip non-json files
+		if !strings.HasSuffix(manifest.Name(), ".json") {
+			continue
+		}
+
+		// Lire et calculer le digest
+		manifestPath := filepath.Join(chartsDir, manifest.Name())
+		content, err := os.ReadFile(manifestPath)
+		if err != nil {
+			continue
+		}
+
+		currentDigest := fmt.Sprintf("%x", sha256.Sum256(content))
+
+		// Si on trouve le bon digest
+		if currentDigest == digest {
+			return manifestPath
+		}
+	}
+
+	return ""
+}
+
 func (pm *PathManager) GetGlobalPath() string {
 	return filepath.Join(pm.baseStoragePath, "charts")
 }

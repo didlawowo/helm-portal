@@ -53,7 +53,8 @@
 <body class="bg-gray-100">
     <nav class="bg-blue-600 text-white p-4 shadow-lg">
         <div class="container mx-auto">
-            <h1 class="text-2xl font-bold">Helm Portal</h1>
+            <img src="/favicon.ico" alt="Logo" class="h-8 w-8 inline-block mr-2">
+            <h1 class="text-2xl font-bold inline-block">Helm Portal</h1>
         </div>
     </nav>
 
@@ -63,8 +64,8 @@
             <h2 class="text-xl font-bold mb-4">Upload New Chart</h2>
             <form action="/chart" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row gap-4">
                 <input type="file" name="chart" accept=".tgz" required class="flex-1 border rounded p-2 file:mr-4 file:py-2 file:px-4
-                                      file:rounded file:border-0 file:bg-blue-500 file:text-white
-                                      hover:file:bg-blue-600 cursor-pointer">
+                        file:rounded file:border-0 file:bg-blue-500 file:text-white
+                        hover:file:bg-blue-600 cursor-pointer">
                 <button type="submit"
                     class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
                     Upload
@@ -78,7 +79,8 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h2 class="text-lg font-bold text-blue-600">{{.Name}}</h2>
-                        <select class="mt-2 text-sm border rounded p-1" onchange="switchVersion('{{.Name}}', this.value)">
+                        <select class="mt-2 text-sm border rounded p-1"
+                            onchange="switchVersion('{{.Name}}', this.value)">
                             {{$name := .Name}}
                             {{range .Versions}}
                             <option value="{{.Version}}">Version: {{.Version}}</option>
@@ -86,29 +88,25 @@
                         </select>
                     </div>
                     <div class="flex gap-2">
-                        {{with index .Versions 0}}  <!-- Utilise la première version pour les URLs initiales -->
-                        <a href="/chart/{{$name}}/{{.Version}}/details" 
-                           class="tooltip-trigger"
-                           data-tooltip="View chart details">
+                        {{with index .Versions 0}} <!-- Utilise la première version pour les URLs initiales -->
+                        <a href="/chart/{{$name}}/{{.Version}}/details" class="tooltip-trigger"
+                            data-tooltip="View chart details">
                             <i class="material-icons icon-info">info</i>
                         </a>
-                        <a href="/chart/{{$name}}/{{.Version}}" 
-                           class="tooltip-trigger"
-                           data-tooltip="Download chart package">
+                        <a href="/chart/{{$name}}/{{.Version}}" class="tooltip-trigger"
+                            data-tooltip="Download chart package">
                             <i class="material-icons icon-download">download</i>
                         </a>
-                        <a href="#" 
-                           onclick="deleteChart('{{$name}}', '{{.Version}}')" 
-                           class="tooltip-trigger"
-                           data-tooltip="Delete this version">
+                        <a href="#" onclick="deleteChart('{{$name}}', '{{.Version}}')" class="tooltip-trigger"
+                            data-tooltip="Delete this version">
                             <i class="material-icons icon-delete">delete</i>
                         </a>
                         {{end}}
                     </div>
                 </div>
-        
+
                 <div class="version-details flex-1 overflow-hidden">
-                    {{with index .Versions 0}}  <!-- Affiche les détails de la première version -->
+                    {{with index .Versions 0}} <!-- Affiche les détails de la première version -->
                     <div class="text-sm text-gray-600 mb-2">
                         <p><span class="font-semibold">App Version:</span> {{.AppVersion}}</p>
                     </div>

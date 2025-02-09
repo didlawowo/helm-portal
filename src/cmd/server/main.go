@@ -83,8 +83,8 @@ func main() {
 			log.WithFields(logrus.Fields{
 				"path":   c.Path(),
 				"method": c.Method(),
-				"ip":     c.IP(),
-				"error":  err.Error(),
+				// "ip":     c.IP(),
+				"error": err.Error(),
 			}).Error("Error handling request")
 			return c.Status(500).SendString("Internal Server Error")
 		},
@@ -95,7 +95,7 @@ func main() {
 		log.WithFields(logrus.Fields{
 			"path":   c.Path(),
 			"method": c.Method(),
-			"ip":     c.IP(),
+			// "ip":     c.IP(),
 		}).Info("Incoming request")
 		return c.Next()
 	})
@@ -103,7 +103,7 @@ func main() {
 
 	// Routes
 	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
-		return c.SendFile("./views/static/ico.webp")
+		return c.SendFile("./views/static/ico.png")
 	})
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
@@ -126,11 +126,11 @@ func main() {
 	app.Head("/v2/:name/manifests/:reference", ociHandler.HandleManifest)
 	app.Get("/v2/:name/manifests/:reference", ociHandler.HandleManifest)
 	app.Put("/v2/:name/manifests/:reference", ociHandler.PutManifest)
-	app.Put("/v2/:name/blobs/:digest", ociHandler.PushBlob)
-	app.Post("/v2/:name/blobs/uploads/", ociHandler.InitiateUpload)
-	app.Patch("/v2/:name/blobs/uploads/:uuid", ociHandler.HandlePatch)
+	app.Put("/v2/:name/blobs/:digest", ociHandler.PutBlob)
+	app.Post("/v2/:name/blobs/uploads/", ociHandler.PostUpload)
+	app.Patch("/v2/:name/blobs/uploads/:uuid", ociHandler.PatchBlob)
 	app.Put("/v2/:name/blobs/uploads/:uuid", ociHandler.CompleteUpload)
-	app.Head("/v2/:name/blobs/:digest", ociHandler.CheckBlob)
+	app.Head("/v2/:name/blobs/:digest", ociHandler.HeadBlob)
 
 	// Démarrage du serveur
 	port := ":3030"
