@@ -31,28 +31,6 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-// Dans votre handler
-func (h *HelmHandler) GetChartVersions(c *fiber.Ctx) error {
-	name := c.Params("name")
-	chartGroups, err := h.service.ListCharts()
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Failed to fetch chart versions",
-		})
-	}
-
-	// Trouver le groupe correspondant au nom
-	for _, group := range chartGroups {
-		if group.Name == name {
-			return c.JSON(group.Versions)
-		}
-	}
-
-	return c.Status(404).JSON(fiber.Map{
-		"error": "Chart not found",
-	})
-}
-
 func sendError(c *fiber.Ctx, status int, message string) error {
 	return c.Status(status).JSON(ErrorResponse{Error: message})
 }
@@ -76,21 +54,24 @@ func NewIndexHandler(service interfaces.ChartServiceInterface, pathManager *stor
 	}
 }
 
-// pkg/middleware/validation.go
-func ValidateChartUpload() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		file, err := c.FormFile("chart")
-		if err != nil {
-			return c.Status(400).JSON(ErrorResponse{Error: "No chart file provided"})
-		}
-
-		if !strings.HasSuffix(file.Filename, ".tgz") {
-			return c.Status(400).JSON(ErrorResponse{Error: "Chart must be a .tgz file"})
-		}
-
-		c.Locals("chartFile", file)
-		return c.Next()
+func (h *HelmHandler) GetChartVersions(c *fiber.Ctx) error {
+	name := c.Params("name")
+	chartGroups, err := h.service.ListCharts()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "Failed to fetch chart versions",
+		})
 	}
+
+	for _, group := range chartGroups {
+		if group.Name == name {
+			return c.JSON(group.Versions)
+		}
+	}
+
+	return c.Status(404).JSON(fiber.Map{
+		"error": "Chart not found",
+	})
 }
 
 func (h *IndexHandler) GetIndex(c *fiber.Ctx) error {
@@ -98,7 +79,7 @@ func (h *IndexHandler) GetIndex(c *fiber.Ctx) error {
 
 	h.log.WithFields(logrus.Fields{
 		"path": indexPath,
-		"ip":   c.IP(),
+		// "ip":   c.IP(),
 	}).Info("Requesting index.yaml")
 
 	// Envoyer le fichier
@@ -111,7 +92,7 @@ func (h *HelmHandler) GetChart(c *fiber.Ctx) error {
 
 	h.log.WithFields(logrus.Fields{
 		"chart": chartName,
-		"ip":    c.IP(),
+		// "ip":    c.IP(),
 	}).Info("Requesting chart")
 
 	if !h.service.ChartExists(chartName, version) {

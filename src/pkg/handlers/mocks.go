@@ -3,23 +3,22 @@ package handlers
 
 import (
 	"helm-portal/pkg/models"
+	"helm-portal/pkg/storage"
 
 	"github.com/stretchr/testify/mock"
 )
 
-// MockChartService implémente l'interface ChartService pour les tests
 type MockChartService struct {
 	mock.Mock
 }
 
-// Implémentation des méthodes requises
 func (m *MockChartService) SaveChart(chartData []byte, filename string) error {
 	args := m.Called(chartData, filename)
 	return args.Error(0)
 }
 
 func (m *MockChartService) GetChart(name string, version string) ([]byte, error) {
-	args := m.Called(name)
+	args := m.Called(name, version)
 	return args.Get(0).([]byte), args.Error(1)
 }
 
@@ -28,17 +27,28 @@ func (m *MockChartService) DeleteChart(name string, version string) error {
 	return args.Error(0)
 }
 
-func (m *MockChartService) ListCharts() ([]models.ChartMetadata, error) {
+func (m *MockChartService) ListCharts() ([]models.ChartGroup, error) { // Correction ici
 	args := m.Called()
-	return args.Get(0).([]models.ChartMetadata), args.Error(1)
+	return args.Get(0).([]models.ChartGroup), args.Error(1)
 }
 
 func (m *MockChartService) ChartExists(name string, version string) bool {
-	args := m.Called(name)
+	args := m.Called(name, version)
 	return args.Bool(0)
 }
 
-// Idem pour le service Index
-type MockIndexService struct {
-	mock.Mock
+func (m *MockChartService) GetPathManager() *storage.PathManager {
+	args := m.Called()
+	return args.Get(0).(*storage.PathManager)
+}
+
+// Nouvelles méthodes
+func (m *MockChartService) GetChartDetails(name, version string) (*models.ChartMetadata, error) {
+	args := m.Called(name, version)
+	return args.Get(0).(*models.ChartMetadata), args.Error(1)
+}
+
+func (m *MockChartService) ExtractChartMetadata(chartData []byte) (*models.ChartMetadata, error) {
+	args := m.Called(chartData)
+	return args.Get(0).(*models.ChartMetadata), args.Error(1)
 }

@@ -1,50 +1,47 @@
-// pkg/handlers/helm_handlers_test.go
 package handlers
 
-// import (
-// 	"bytes"
+import (
+	"bytes"
+	"mime/multipart"
+	"net/http/httptest"
+	"testing"
 
-// 	"mime/multipart"
-// 	"net/http/httptest"
+	"helm-portal/pkg/storage"
 
-// 	"testing"
+	"github.com/gofiber/fiber/v2"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
 
-// 	"helm-portal/pkg/interfaces"
-// 	"helm-portal/pkg/storage"
+func TestUploadChart(t *testing.T) {
+	// Setup
+	log := logrus.New()
+	mockService := new(MockChartService)
+	pathManager := storage.NewPathManager("./charts")
+	handler := NewHelmHandler(mockService, pathManager, log)
 
-// 	"github.com/gofiber/fiber/v2"
-// 	"github.com/sirupsen/logrus"
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// )
+	app := fiber.New()
+	app.Post("/chart", handler.UploadChart)
 
-// func TestUploadChart(t *testing.T) {
-// 	// Setup
-// 	log := logrus.New()
-// 	mockService := new(MockChartService)
-// 	pathManager := storage.NewPathManager("./charts")
-// 	handler := NewHelmHandler(mockService, pathManager, log)
+	// Créer un fichier test
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("chart", "test-chart.tgz")
+	assert.NoError(t, err)
+	part.Write([]byte("test content"))
+	writer.Close()
 
-// 	app := fiber.New()
-// 	app.Post("/charts", handler.UploadChart)
+	// Test
+	req := httptest.NewRequest("POST", "/chart", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-// 	// Créer un fichier test
-// 	body := new(bytes.Buffer)
-// 	writer := multipart.NewWriter(body)
-// 	part, _ := writer.CreateFormFile("chart", "test-chart.tgz")
-// 	part.Write([]byte("test content"))
-// 	writer.Close()
+	mockService.On("SaveChart", mock.Anything, "test-chart.tgz").Return(nil)
 
-// 	// Test
-// 	req := httptest.NewRequest("POST", "/charts", body)
-// 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	resp, err := app.Test(req)
 
-// 	mockService.On("SaveChart", mock.Anything, "test-chart.tgz").Return(nil)
-
-// 	resp, err := app.Test(req)
-
-// 	// Assertions
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, 200, resp.StatusCode)
-// 	mockService.AssertExpectations(t)
-// }
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode)
+	mockService.AssertExpectations(t)
+}
