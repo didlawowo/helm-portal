@@ -80,12 +80,12 @@ func main() {
 		StrictRouting: true,
 		ServerHeader:  "Helm Portal",
 		Views:         html.New("./views", ".html"),
+
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			log.WithFields(logrus.Fields{
 				"path":   c.Path(),
 				"method": c.Method(),
-				// "ip":     c.IP(),
-				"error": err.Error(),
+				"error":  err.Error(),
 			}).Error("Error handling request")
 			return c.Status(500).SendString("Internal Server Error")
 		},
@@ -134,10 +134,12 @@ func main() {
 	app.Put("/v2/:name/blobs/uploads/:uuid", ociHandler.CompleteUpload)
 	app.Head("/v2/:name/blobs/:digest", ociHandler.HeadBlob)
 	app.Get("/v2/:name/blobs/:digest", ociHandler.GetBlob)
+
 	// Démarrage du serveur
 	port := ":3030"
 	log.WithField("port", port).Info("Starting server")
-	if err := app.Listen(port); err != nil {
-		log.WithError(err).Fatal("Server failed to start")
+
+	if err := app.ListenTLS(":3030", "certs/ca.crt", "certs/ca.key"); err != nil {
+		log.WithError(err).Fatal("Server failed to start with TLS")
 	}
 }
