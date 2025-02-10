@@ -4,8 +4,10 @@ import (
 	"helm-portal/config"
 	"helm-portal/pkg/handlers"
 	"helm-portal/pkg/interfaces"
+	middleware "helm-portal/pkg/middlewares"
 	service "helm-portal/pkg/services"
 	"helm-portal/pkg/storage"
+
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -110,6 +112,12 @@ func main() {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
 	})
+	// Créer le middleware d'authentification
+	authMiddleware := middleware.NewAuthMiddleware(cfg, log)
+
+	// Appliquer le middleware aux routes OCI qui nécessitent une authentification
+	ociGroup := app.Group("/v2")
+	ociGroup.Use(authMiddleware.Authenticate())
 
 	// Routes Helm
 	app.Get("/", helmHandler.DisplayHome)

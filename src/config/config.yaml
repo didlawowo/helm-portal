@@ -1,12 +1,20 @@
 server:
   port: 3030
   tls:
-    certFile: "certs/cert.pem"
-    keyFile: "certs/key.pem"
+    certFile: "certs/ca.cert"
+    keyFile: "certs/ca.key"
   host: "localhost"
 
 storage:
   path: "data"
+
+auth:
+  enabled: true
+  users:
+  - username: "admin"
+    password: "admin123"
+  - username: "dev"
+    password: "dev123"
 
 helm:
   baseURL: "https://localhost:3030"

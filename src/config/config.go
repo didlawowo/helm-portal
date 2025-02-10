@@ -7,6 +7,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// pkg/config/config.go
+type User struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+type AuthConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Users   []User `yaml:"users"`
+}
+
 type Config struct {
 	Server struct {
 		Port int    `yaml:"port"`
@@ -25,6 +36,7 @@ type Config struct {
 	Logging struct {
 		Level string `yaml:"level"`
 	} `yaml:"logging"`
+	Auth AuthConfig `yaml:"auth"`
 }
 
 func LoadConfig(path string) (*Config, error) {
