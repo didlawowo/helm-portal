@@ -42,6 +42,32 @@ func (h *OCIHandler) HandleOCIAPI(c *fiber.Ctx) error {
 	})
 }
 
+// Add this function to handle GET blob requests
+func (h *OCIHandler) GetBlob(c *fiber.Ctx) error {
+	digest := c.Params("digest")
+	name := c.Params("name")
+
+	h.log.WithFields(logrus.Fields{
+		"chart":  name,
+		"digest": digest,
+	}).Info("📥 Get Blob Request")
+
+	// Reuse your existing getBlobByDigest function
+	blobData, err := h.getBlobByDigest(digest)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return c.SendStatus(404)
+		}
+		h.log.WithError(err).Error("Failed to get blob")
+		return c.SendStatus(500)
+	}
+
+	c.Set("Docker-Content-Digest", digest)
+	c.Set("Content-Type", "application/octet-stream")
+
+	return c.Send(blobData)
+}
+
 // Liste des repositories
 func (h *OCIHandler) HandleCatalog(c *fiber.Ctx) error {
 	charts, err := h.service.ListCharts()
@@ -60,6 +86,11 @@ func (h *OCIHandler) HandleCatalog(c *fiber.Ctx) error {
 	})
 }
 
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 func (h *OCIHandler) HandleManifest(c *fiber.Ctx) error {
 	name := c.Params("name")
 	reference := c.Params("reference")
@@ -71,15 +102,41 @@ func (h *OCIHandler) HandleManifest(c *fiber.Ctx) error {
 
 	var manifestPath string
 	if strings.HasPrefix(reference, "sha256:") {
-		// Si on a un digest SHA256, on cherche d'abord le manifest avec la version
-		// pour ensuite vérifier son digest
-		// On sait qu'on a reçu une première requête avec la version
-		manifestPath = filepath.Join(h.pathManager.GetGlobalPath(), "manifests", name, "0.2.0.json")
-	} else {
-		manifestPath = filepath.Join(h.pathManager.GetGlobalPath(), "manifests", name, reference+".json")
-	}
+		manifestsDir := filepath.Join(h.pathManager.GetBasePath(), "manifests", name)
+		// Lister tous les manifests et trouver celui qui correspond au digest
+		files, err := os.ReadDir(manifestsDir)
+		if err != nil {
+			return c.SendStatus(404)
+		}
 
-	h.log.WithField("manifestPath", manifestPath).Debug("Looking for manifest at path")
+		for _, f := range files {
+			if f.IsDir() {
+				continue
+			}
+			currentPath := filepath.Join(manifestsDir, f.Name())
+			data, err := os.ReadFile(currentPath)
+			if err != nil {
+				continue
+			}
+
+			currentDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(data))
+			if currentDigest == reference {
+				manifestPath = currentPath
+				break
+			}
+		}
+	} else {
+		manifestPath = filepath.Join(h.pathManager.GetBasePath(), "manifests", name, reference+".json")
+	}
+	h.log.WithFields(logrus.Fields{
+		"manifestPath": manifestPath,
+		"exists":       fileExists(manifestPath), // Ajoutez une fonction helper
+	}).Debug("🔍 Looking for manifest")
+
+	h.log.WithFields(logrus.Fields{
+		"manifestPath": manifestPath,
+		"basePath":     h.pathManager.GetBasePath(),
+	}).Info("🔍 Searching manifest at")
 
 	// Pour un HEAD request, on vérifie juste l'existence
 	if c.Method() == "HEAD" {

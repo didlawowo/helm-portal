@@ -49,7 +49,8 @@ func main() {
 	log := logrus.New()
 	log.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 	log.SetOutput(os.Stdout)
-	log.SetLevel(logrus.InfoLevel)
+	// log.SetLevel(logrus.InfoLevel)
+	log.SetLevel(logrus.DebugLevel) // <-- Modifier cette ligne
 
 	// Configuration
 	cfg, err := config.LoadConfig("config/config.yaml")
@@ -132,7 +133,7 @@ func main() {
 	app.Patch("/v2/:name/blobs/uploads/:uuid", ociHandler.PatchBlob)
 	app.Put("/v2/:name/blobs/uploads/:uuid", ociHandler.CompleteUpload)
 	app.Head("/v2/:name/blobs/:digest", ociHandler.HeadBlob)
-
+	app.Get("/v2/:name/blobs/:digest", ociHandler.GetBlob)
 	// Démarrage du serveur
 	port := ":3030"
 	log.WithField("port", port).Info("Starting server")

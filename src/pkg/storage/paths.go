@@ -42,8 +42,6 @@ func NewPathManager(basePath string, log *logrus.Logger) *PathManager {
 	}
 }
 
-// Dans storage/path_manager.go
-
 func (pm *PathManager) GetTempPath(uuid string) string {
 	return filepath.Join(pm.baseStoragePath, "temp", uuid)
 }
@@ -105,7 +103,11 @@ func (pm *PathManager) FindManifestByDigest(chartName string, digest string) str
 	return ""
 }
 
-func (pm *PathManager) GetGlobalPath() string {
+func (pm *PathManager) GetBasePath() string {
+	return filepath.Join(pm.baseStoragePath)
+}
+
+func (pm *PathManager) GetChartsPath() string {
 	return filepath.Join(pm.baseStoragePath, "charts")
 }
 

@@ -56,10 +56,7 @@ func (s *ChartService) GetPathManager() *storage.PathManager {
 // SaveChart saves an uploaded chart file
 func (s *ChartService) SaveChart(chartData []byte, filename string) error {
 	// ✨ Create charts directory if not exists
-	chartsDir := s.pathManager.GetGlobalPath()
-	if err := os.MkdirAll(chartsDir, 0755); err != nil {
-		return fmt.Errorf("❌ failed to create charts directory: %w", err)
-	}
+	chartsDir := s.pathManager.GetChartsPath()
 
 	// 💾 Save chart file
 	chartPath := filepath.Join(chartsDir, filename)
@@ -132,7 +129,7 @@ func (s *ChartService) ExtractChartMetadata(chartData []byte) (*models.ChartMeta
 
 // ListCharts returns all available charts grouped by name with their versions
 func (s *ChartService) ListCharts() ([]models.ChartGroup, error) {
-	chartsDir := s.pathManager.GetGlobalPath()
+	chartsDir := s.pathManager.GetChartsPath()
 	var chartMetadatas []models.ChartMetadata
 
 	// Read charts directory

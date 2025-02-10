@@ -48,7 +48,7 @@ func TestHandleManifest(t *testing.T) {
 	app.Head("/v2/:name/manifests/:reference", handler.HandleManifest)
 
 	manifestContent := []byte(`{"schemaVersion": 2}`)
-	manifestPath := filepath.Join(mockService.GetPathManager().GetGlobalPath(), "test-chart", "1.0.0.json")
+	manifestPath := filepath.Join(mockService.GetPathManager().GetBasePath(), "test-chart", "1.0.0.json")
 
 	// Ensure directory exists
 	os.MkdirAll(filepath.Dir(manifestPath), 0755)
