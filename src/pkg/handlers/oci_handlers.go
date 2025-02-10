@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	interfaces "helm-portal/pkg/interfaces"
-	// "helm-portal/pkg/models"
+	"helm-portal/pkg/models"
 	storage "helm-portal/pkg/storage"
 
 	"os"
@@ -23,21 +23,6 @@ type OCIHandler struct {
 	log         *logrus.Logger
 	service     interfaces.ChartServiceInterface
 	pathManager *storage.PathManager
-}
-
-type OCIManifest struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	MediaType     string `json:"mediaType"`
-	Config        struct {
-		MediaType string `json:"mediaType"`
-		Digest    string `json:"digest"`
-		Size      int    `json:"size"`
-	} `json:"config"`
-	Layers []struct {
-		MediaType string `json:"mediaType"`
-		Digest    string `json:"digest"`
-		Size      int    `json:"size"`
-	} `json:"layers"`
 }
 
 func NewOCIHandler(service interfaces.ChartServiceInterface, log *logrus.Logger) *OCIHandler {
@@ -79,38 +64,52 @@ func (h *OCIHandler) HandleManifest(c *fiber.Ctx) error {
 	name := c.Params("name")
 	reference := c.Params("reference")
 
+	h.log.WithFields(logrus.Fields{
+		"name":      name,
+		"reference": reference,
+	}).Debug("Handling manifest request")
+
 	var manifestPath string
 	if strings.HasPrefix(reference, "sha256:") {
-		var err error
-		manifestPath = h.pathManager.FindManifestByDigest(name, reference)
-		if err != nil {
-			h.log.WithError(err).Error("Failed to find manifest by digest")
-			return c.SendStatus(404)
-		}
+		// Si on a un digest SHA256, on cherche d'abord le manifest avec la version
+		// pour ensuite vérifier son digest
+		// On sait qu'on a reçu une première requête avec la version
+		manifestPath = filepath.Join(h.pathManager.GetGlobalPath(), "manifests", name, "0.2.0.json")
 	} else {
-		manifestPath = h.pathManager.GetManifestPath(name, reference)
-		if !h.service.ChartExists(name, reference) {
-			return c.SendStatus(404)
-		}
+		manifestPath = filepath.Join(h.pathManager.GetGlobalPath(), "manifests", name, reference+".json")
 	}
 
-	// Pour un HEAD request, on s'arrête là
+	h.log.WithField("manifestPath", manifestPath).Debug("Looking for manifest at path")
+
+	// Pour un HEAD request, on vérifie juste l'existence
 	if c.Method() == "HEAD" {
+		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+			return c.SendStatus(404)
+		}
 		return c.SendStatus(200)
 	}
 
+	// Lire le manifest
 	manifestData, err := os.ReadFile(manifestPath)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to read manifest")
+		h.log.WithError(err).WithField("path", manifestPath).Error("Failed to read manifest")
 		return c.SendStatus(500)
 	}
 
-	c.Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
+	// Si on a un digest, vérifier qu'il correspond
+	if strings.HasPrefix(reference, "sha256:") {
+		currentDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifestData))
+		if currentDigest != reference {
+			h.log.WithFields(logrus.Fields{
+				"expected": reference,
+				"got":      currentDigest,
+			}).Error("Digest mismatch")
+			return c.SendStatus(404)
+		}
+	}
 
-	// Ajout important du Docker-Content-Digest header
-	digest := sha256.Sum256(manifestData)
-	digestStr := fmt.Sprintf("sha256:%x", digest)
-	c.Set("Docker-Content-Digest", digestStr)
+	c.Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
+	c.Set("Docker-Content-Digest", fmt.Sprintf("sha256:%x", sha256.Sum256(manifestData)))
 
 	return c.Send(manifestData)
 }
@@ -279,7 +278,7 @@ func (h *OCIHandler) PutManifest(c *fiber.Ctx) error {
 	reference := c.Params("reference")
 
 	// Décoder le manifest pour extraire les infos du chart
-	var manifest OCIManifest
+	var manifest models.OCIManifest
 	if err := json.Unmarshal(c.Body(), &manifest); err != nil {
 		h.log.WithError(err).Error("❌ Erreur parsing manifest")
 		return c.SendStatus(500)

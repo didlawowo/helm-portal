@@ -32,7 +32,7 @@ func setupServices(cfg *config.Config, log *logrus.Logger) (interfaces.ChartServ
 // setupHandlers initialise tous les handlers
 func setupHandlers(
 	chartService interfaces.ChartServiceInterface,
-	indexService interfaces.IndexServiceInterface,
+	_ interfaces.IndexServiceInterface,
 	pathManager *storage.PathManager,
 	log *logrus.Logger,
 ) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler) {
@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// PathManager
-	pathManager := storage.NewPathManager(cfg.Storage.Path)
+	pathManager := storage.NewPathManager(cfg.Storage.Path, log)
 
 	// Services
 	chartService, indexService := setupServices(cfg, log)
@@ -97,6 +97,7 @@ func main() {
 			"method": c.Method(),
 			// "ip":     c.IP(),
 		}).Info("Incoming request")
+
 		return c.Next()
 	})
 	app.Static("/static", "./views/static")

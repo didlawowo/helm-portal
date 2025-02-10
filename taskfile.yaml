@@ -2,10 +2,11 @@ version: '3'
 
 tasks:
 
-  shell:
-    desc: start venv shell
+  dev:
+    desc: start air go
+    dir: src
     cmds:
-    - pipenv shell
+    - air
 
   build:
     desc: Build Docker image

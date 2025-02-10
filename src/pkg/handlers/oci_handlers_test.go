@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"helm-portal/pkg/models"
 	"helm-portal/pkg/storage"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,7 +25,7 @@ func setupTestEnv(t *testing.T) (*fiber.App, *MockChartService, *OCIHandler, fun
 	// Setup components
 	log := logrus.New()
 	mockService := new(MockChartService)
-	pathManager := storage.NewPathManager(tempDir)
+	pathManager := storage.NewPathManager(tempDir, log)
 
 	mockService.On("GetPathManager").Return(pathManager)
 
@@ -102,7 +103,7 @@ func TestPutManifest(t *testing.T) {
 
 	app.Put("/v2/:name/manifests/:reference", handler.PutManifest)
 
-	manifest := OCIManifest{
+	manifest := models.OCIManifest{
 		SchemaVersion: 2,
 		MediaType:     "application/vnd.oci.image.manifest.v1+json",
 		Config: struct {

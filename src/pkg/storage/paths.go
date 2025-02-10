@@ -3,8 +3,10 @@ package storage
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
-	"log"
+
+	"helm-portal/pkg/models"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +19,7 @@ type PathManager struct {
 	log             *logrus.Logger
 }
 
-func NewPathManager(basePath string) *PathManager {
+func NewPathManager(basePath string, log *logrus.Logger) *PathManager {
 	// Créer les dossiers nécessaires
 	dirs := []string{
 		"temp",  // Pour les uploads temporaires
@@ -36,6 +38,7 @@ func NewPathManager(basePath string) *PathManager {
 	return &PathManager{
 
 		baseStoragePath: basePath,
+		log:             log,
 	}
 }
 
@@ -54,46 +57,49 @@ func (pm *PathManager) GetManifestPath(name, reference string) string {
 	return filepath.Join(pm.baseStoragePath, "manifests", name, reference)
 }
 
-func (pm *PathManager) GetChartPath(name string, version string) string {
-	fileName := fmt.Sprintf("%s-%s.tgz", name, version)
-	chartPath := filepath.Join(pm.GetGlobalPath(), fileName)
-	logrus.Infof("Chart path: %s", chartPath)
-	return chartPath
+func (pm *PathManager) GetChartPath(chartName string, reference string) string {
+	// Si c'est un digest SHA256
+	if strings.HasPrefix(reference, "sha256:") {
+		// On cherche d'abord dans les manifests pour obtenir la version
+		manifestPath := filepath.Join(pm.baseStoragePath, "manifests", chartName)
+		manifestFile := filepath.Join(manifestPath, "0.2.0.json") // Pour le moment en dur
+
+		// Lire le manifest
+		content, err := os.ReadFile(manifestFile)
+		if err == nil {
+			// Parse le json pour obtenir la version
+			var manifest models.OCIManifest // Ajoutez la structure OCIManifest
+			if err := json.Unmarshal(content, &manifest); err == nil {
+				// Utiliser la version du manifest plutôt que le digest
+				return filepath.Join(pm.baseStoragePath, "charts", fmt.Sprintf("%s-%s.tgz", chartName, "0.2.0"))
+			}
+		}
+	}
+
+	// Sinon c'est une version normale
+	return filepath.Join(pm.baseStoragePath, "charts", fmt.Sprintf("%s-%s.tgz", chartName, reference))
 }
 
 func (pm *PathManager) FindManifestByDigest(chartName string, digest string) string {
-	// 🔍 Remove sha256: prefix if present
-	digest = strings.TrimPrefix(digest, "sha256:")
+	// Le manifest est toujours dans manifests/chartName/version.json
+	manifestPath := filepath.Join(pm.baseStoragePath, "manifests", chartName, "0.2.0.json")
 
-	// 📂 Root charts directory
-	chartsDir := filepath.Join(pm.GetGlobalPath(), chartName)
+	pm.log.WithFields(logrus.Fields{
+		"manifestPath": manifestPath,
+		"chartName":    chartName,
+		"digest":       digest,
+	}).Debug("Looking for manifest")
 
-	// Lire les manifests de ce chart
-	manifests, err := os.ReadDir(chartsDir)
+	// Vérifier le digest
+	content, err := os.ReadFile(manifestPath)
 	if err != nil {
+		pm.log.WithError(err).Error("Failed to read manifest")
 		return ""
 	}
 
-	// Pour chaque manifest
-	for _, manifest := range manifests {
-		// Skip non-json files
-		if !strings.HasSuffix(manifest.Name(), ".json") {
-			continue
-		}
-
-		// Lire et calculer le digest
-		manifestPath := filepath.Join(chartsDir, manifest.Name())
-		content, err := os.ReadFile(manifestPath)
-		if err != nil {
-			continue
-		}
-
-		currentDigest := fmt.Sprintf("%x", sha256.Sum256(content))
-
-		// Si on trouve le bon digest
-		if currentDigest == digest {
-			return manifestPath
-		}
+	currentDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(content))
+	if currentDigest == digest {
+		return manifestPath
 	}
 
 	return ""

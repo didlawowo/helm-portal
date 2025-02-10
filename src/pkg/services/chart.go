@@ -42,7 +42,7 @@ func NewChartService(config *config.Config, log *logrus.Logger, indexUpdater Ind
 		log.WithError(err).Error("❌ Impossible de créer le dossier de stockage")
 	}
 	return &ChartService{
-		pathManager:  storage.NewPathManager(config.Storage.Path),
+		pathManager:  storage.NewPathManager(config.Storage.Path, log),
 		config:       config,
 		log:          log,
 		baseURL:      config.Helm.BaseURL,

@@ -6,7 +6,7 @@ server:
   host: "localhost"
 
 storage:
-  path: "charts"
+  path: "data"
 
 helm:
   baseURL: "https://localhost:3030"

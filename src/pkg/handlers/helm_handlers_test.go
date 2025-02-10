@@ -18,7 +18,7 @@ func TestUploadChart(t *testing.T) {
 	// Setup
 	log := logrus.New()
 	mockService := new(MockChartService)
-	pathManager := storage.NewPathManager("./charts")
+	pathManager := storage.NewPathManager("./charts", log)
 	handler := NewHelmHandler(mockService, pathManager, log)
 
 	app := fiber.New()
