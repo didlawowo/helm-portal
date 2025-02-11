@@ -78,8 +78,14 @@
             <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[200px]" data-chart-name="{{.Name}}">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h2 class="text-lg font-bold text-blue-600">{{.Name}}</h2>
                         {{$name := .Name}}
+                        <h2 class="text-lg font-bold text-blue-600">
+                            {{with index .Versions 0}}
+                            <a href="/chart/{{$name}}/{{.Version}}/details">
+                                {{$name}} <!-- Utiliser $name car nous sommes dans un with -->
+                            </a>
+                            {{end}}
+                        </h2>
                         {{if gt (len .Versions) 1}}
                         <!-- Affiche la liste déroulante seulement s'il y a plus d'une version -->
                         <select class="mt-2 text-sm border rounded p-1"

@@ -211,6 +211,8 @@ func (h *HelmHandler) DisplayHome(c *fiber.Ctx) error {
 func (h *HelmHandler) DisplayChartDetails(c *fiber.Ctx) error {
 	name := c.Params("name")
 	version := c.Params("version")
+
+	// Récupération des détails du chart
 	chart, err := h.service.GetChartDetails(name, version)
 	if err != nil {
 		h.log.WithError(err).Error("Failed to get chart")
@@ -218,17 +220,26 @@ func (h *HelmHandler) DisplayChartDetails(c *fiber.Ctx) error {
 			"Error": "Failed to load chart",
 		})
 	}
-	chartDetails := fiber.Map{
-		"Name":        chart.Name,
-		"Version":     chart.Version,
-		"AppVersion":  chart.AppVersion,
-		"Description": chart.Description,
-		"Type":        chart.Type,
 
-		"Dependencies": chart.Dependencies,
+	// Lecture du fichier values.yaml
+	valuesContent, err := h.service.GetChartValues(name, version)
+	if err != nil {
+		h.log.WithError(err).Error("Failed to read values.yaml")
+		valuesContent = "No values.yaml found"
 	}
+
+	chartDetails := fiber.Map{
+		"Name":         chart.Name,
+		"Version":      chart.Version,
+		"AppVersion":   chart.AppVersion,
+		"Description":  chart.Description,
+		"Type":         chart.Type,
+		"Dependencies": chart.Dependencies,
+		"Values":       valuesContent,
+	}
+
 	return c.Render("details", fiber.Map{
 		"Chart": chartDetails,
-		"Title": "Chart Details",
+		"Title": "Chart Details - " + chart.Name,
 	})
 }

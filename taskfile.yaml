@@ -42,6 +42,12 @@ tasks:
     cmds:
     - helm push  my-chart-0.1.0.tgz oci://localhost:3030/my-chart
 
+  test-pull-chart:
+    desc: Test pull chart
+    dir: src/test
+    cmds:
+    - helm pull oci://localhost:3030/my-chart --version 0.1.0
+
 default:
   desc: List available tasks
   cmds:

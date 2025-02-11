@@ -1,4 +1,4 @@
-version: '3.8'
+ 
 
 services:
   traefik:
@@ -26,7 +26,8 @@ services:
     build: .
     container_name: helm-portal
     volumes:
-      - ./charts:/app/charts  # Pour persister les charts
+      - ./charts:/app/data  # Pour persister les charts
+      - ./src/config:/app/config   
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.helm.rule=Host(`helm.your-domain.com`)"
@@ -35,6 +36,8 @@ services:
       - "traefik.http.services.helm.loadbalancer.server.port=3030"
     networks:
       - helm-network
+    ports:
+      - "3030:3030"
 
 networks:
   helm-network:

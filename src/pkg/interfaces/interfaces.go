@@ -13,6 +13,7 @@ type ChartServiceInterface interface {
 	GetChartDetails(name, version string) (*models.ChartMetadata, error)
 	DeleteChart(name, version string) error
 	GetPathManager() *storage.PathManager
+	GetChartValues(name, version string) (string, error)
 	ExtractChartMetadata(chartData []byte) (*models.ChartMetadata, error)
 }
 

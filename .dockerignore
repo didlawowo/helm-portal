@@ -1,9 +1,10 @@
 .git
 .gitignore
 .env
+.github
 *.md
 docs/
-tests/
+src/test
 *.test
 .idea/
 .vscode/
@@ -17,3 +18,5 @@ make-certs.sh
 cmd/client*
 .air.toml
 src/test
+
+sonar-project.properties

@@ -42,6 +42,11 @@ func (m *MockChartService) GetPathManager() *storage.PathManager {
 	return args.Get(0).(*storage.PathManager)
 }
 
+func (m *MockChartService) GetChartValues(name, version string) (string, error) {
+	args := m.Called(name, version)
+	return args.String(0), args.Error(1)
+}
+
 // Nouvelles méthodes
 func (m *MockChartService) GetChartDetails(name, version string) (*models.ChartMetadata, error) {
 	args := m.Called(name, version)

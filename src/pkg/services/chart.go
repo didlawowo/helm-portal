@@ -215,3 +215,45 @@ func (s *ChartService) DeleteChart(chartName string, version string) error {
 	// Mettre à jour l'index
 	return s.indexUpdater.UpdateIndex()
 }
+
+func (s *ChartService) GetChartValues(chartName string, version string) (string, error) {
+	// 📂 Récupérer le chemin du chart
+	chartPath := s.pathManager.GetChartPath(chartName, version)
+
+	// 📦 Ouvrir le fichier tgz
+	f, err := os.Open(chartPath)
+	if err != nil {
+		return "", fmt.Errorf("❌ failed to open chart file: %w", err)
+	}
+	defer f.Close()
+
+	// 🗜️ Lire le contenu du tgz
+	gzf, err := gzip.NewReader(f)
+	if err != nil {
+		return "", fmt.Errorf("❌ failed to create gzip reader: %w", err)
+	}
+	defer gzf.Close()
+
+	// 📄 Lire le tar
+	tr := tar.NewReader(gzf)
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", fmt.Errorf("❌ failed to read tar: %w", err)
+		}
+
+		// 🔍 Chercher values.yaml
+		if strings.HasSuffix(header.Name, "values.yaml") {
+			content, err := io.ReadAll(tr)
+			if err != nil {
+				return "", fmt.Errorf("❌ failed to read values.yaml: %w", err)
+			}
+			return string(content), nil
+		}
+	}
+
+	return "", fmt.Errorf("❌ values.yaml not found in chart")
+}

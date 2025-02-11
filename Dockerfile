@@ -35,15 +35,12 @@ WORKDIR /app
 # Copier l'exécutable depuis le builder
 COPY --from=builder /app/helm-portal .
 
-# Copier les certificats
-COPY certs/ ./certs/
-
 # Définir les permissions
 RUN chown -R app:app /app
 
 # Utiliser l'utilisateur non-root
 USER app
 
-EXPOSE 8080
+EXPOSE 3030
 
 CMD ["./helm-portal"]
