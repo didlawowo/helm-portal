@@ -3,6 +3,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 
 	"strings"
@@ -159,13 +160,25 @@ func (h *HelmHandler) UploadChart(c *fiber.Ctx) error {
 func (h *HelmHandler) DownloadChart(c *fiber.Ctx) error {
 	name := c.Params("name")
 	version := c.Params("version")
-	chart, err := h.service.GetChart(name, version)
+
+	// 🔍 Log de debug
 	h.log.WithField("name", name).WithField("version", version).Info("Downloading chart")
+
+	chart, err := h.service.GetChart(name, version)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get chart")
+		h.log.WithError(err).Error("❌ Failed to get chart")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to get chart"})
 	}
-	return c.Send(chart)
+
+	// 📁 Nom du fichier
+	fileName := fmt.Sprintf("%s-%s.tgz", name, version)
+
+	// 📥 Configuration des headers pour le téléchargement
+	c.Set("Content-Type", "application/x-tar")
+	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+
+	// ✅ Envoi du fichier
+	return c.Send(chart) // Envoi du contenu du chart, pas juste le nom
 }
 
 func (h *HelmHandler) DeleteChart(c *fiber.Ctx) error {

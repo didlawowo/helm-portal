@@ -46,6 +46,42 @@ func setupHandlers(
 	return helmHandler, ociHandler, configHandler, indexHandler
 }
 
+// Dans main.go
+func setupHTTPServer(app *fiber.App, log *logrus.Logger) {
+	// go func() {
+	// 	// Serveur HTTP qui redirige vers HTTPS
+	// 	httpApp := fiber.New(fiber.Config{
+	// 		DisableStartupMessage: true,
+	// 	})
+
+	// 	// Middleware de redirection
+	// 	httpApp.Use(func(c *fiber.Ctx) error {
+	// 		httpsURL := "https://" + c.Hostname() + c.OriginalURL()
+	// 		log.WithFields(logrus.Fields{
+	// 			"from": c.OriginalURL(),
+	// 			"to":   httpsURL,
+	// 		}).Info("🔄 Redirecting HTTP to HTTPS")
+	// 		return c.Redirect(httpsURL, 301)
+	// 	})
+
+	// 	// Écouter sur le port HTTP
+	// 	if err := httpApp.Listen(":3030"); err != nil {
+	// 		log.WithError(err).Error("HTTP Server failed")
+	// 	}
+	// }()
+
+	// Serveur HTTPS principal
+	// log.Info("🔒 Starting HTTPS server on :3031")
+	// if err := app.ListenTLS(":3031", "certs/ca.crt", "certs/ca.key"); err != nil {
+	// 	log.WithError(err).Fatal("HTTPS Server failed")
+	// }
+	log.Info("🔒 Starting HTTP server on :3030")
+
+	if err := app.Listen(":3030"); err != nil {
+		log.WithError(err).Fatal("HTTP Server failed")
+	}
+}
+
 func main() {
 	// Logger setup
 	log := logrus.New()
@@ -98,11 +134,16 @@ func main() {
 		log.WithFields(logrus.Fields{
 			"path":   c.Path(),
 			"method": c.Method(),
-			// "ip":     c.IP(),
+			"route":  c.Route().Path,
+			"params": c.AllParams(),
+
+			// "headers": c.GetReqHeaders(),
 		}).Info("Incoming request")
 
 		return c.Next()
 	})
+	// app.Use(middleware.HTTPSRedirect(log))
+
 	app.Static("/static", "./views/static")
 
 	// Routes
@@ -131,23 +172,21 @@ func main() {
 	app.Get("/chart/:name/versions", helmHandler.GetChartVersions)
 
 	// Routes OCI
-	app.Get("/v2/", ociHandler.HandleOCIAPI)
-	app.Get("/v2/_catalog", ociHandler.HandleCatalog)
-	app.Head("/v2/:name/manifests/:reference", ociHandler.HandleManifest)
-	app.Get("/v2/:name/manifests/:reference", ociHandler.HandleManifest)
-	app.Put("/v2/:name/manifests/:reference", ociHandler.PutManifest)
-	app.Put("/v2/:name/blobs/:digest", ociHandler.PutBlob)
-	app.Post("/v2/:name/blobs/uploads/", ociHandler.PostUpload)
-	app.Patch("/v2/:name/blobs/uploads/:uuid", ociHandler.PatchBlob)
-	app.Put("/v2/:name/blobs/uploads/:uuid", ociHandler.CompleteUpload)
-	app.Head("/v2/:name/blobs/:digest", ociHandler.HeadBlob)
-	app.Get("/v2/:name/blobs/:digest", ociHandler.GetBlob)
+	ociGroup.Get("/", ociHandler.HandleOCIAPI)
+	ociGroup.Get("/_catalog", ociHandler.HandleCatalog)
+	ociGroup.Head("/:name/manifests/:reference", ociHandler.HandleManifest)
+	ociGroup.Get("/:name/manifests/:reference", ociHandler.HandleManifest)
+	ociGroup.Put("/:name/manifests/:reference", ociHandler.PutManifest)
+	ociGroup.Put("/:name/blobs/:digest", ociHandler.PutBlob)
+	ociGroup.Post("/:name/blobs/uploads/", ociHandler.PostUpload)
+	ociGroup.Patch("/:name/blobs/uploads/:uuid", ociHandler.PatchBlob)
+	ociGroup.Put("/:name/blobs/uploads/:uuid", ociHandler.CompleteUpload)
+	ociGroup.Head("/:name/blobs/:digest", ociHandler.HeadBlob)
+	ociGroup.Get("/:name/blobs/:digest", ociHandler.GetBlob)
 
 	// Démarrage du serveur
 	port := ":3030"
 	log.WithField("port", port).Info("Starting server")
 
-	if err := app.ListenTLS(":3030", "certs/ca.crt", "certs/ca.key"); err != nil {
-		log.WithError(err).Fatal("Server failed to start with TLS")
-	}
+	setupHTTPServer(app, log)
 }

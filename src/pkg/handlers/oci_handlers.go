@@ -308,6 +308,13 @@ func (h *OCIHandler) HeadBlob(c *fiber.Ctx) error {
 
 	blobPath := h.pathManager.GetBlobPath(digest)
 
+	h.log.WithFields(logrus.Fields{
+		"headers":  c.GetReqHeaders(),
+		"method":   c.Method(),
+		"path":     c.Path(),
+		"blobPath": blobPath,
+	}).Debug("🔍 Full Head Blob Request details")
+
 	if _, err := os.Stat(blobPath); err != nil {
 		if os.IsNotExist(err) {
 			h.log.WithError(err).Error("Blob not found")
@@ -319,7 +326,7 @@ func (h *OCIHandler) HeadBlob(c *fiber.Ctx) error {
 
 	info, err := os.Stat(blobPath)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get blob info")
+		h.log.WithError(err).Error("Failed to get blob info ")
 		return c.SendStatus(500)
 	}
 

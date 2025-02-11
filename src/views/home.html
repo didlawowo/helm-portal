@@ -79,13 +79,21 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h2 class="text-lg font-bold text-blue-600">{{.Name}}</h2>
+                        {{$name := .Name}}
+                        {{if gt (len .Versions) 1}}
+                        <!-- Affiche la liste déroulante seulement s'il y a plus d'une version -->
                         <select class="mt-2 text-sm border rounded p-1"
                             onchange="switchVersion('{{.Name}}', this.value)">
-                            {{$name := .Name}}
                             {{range .Versions}}
                             <option value="{{.Version}}">Version: {{.Version}}</option>
                             {{end}}
                         </select>
+                        {{else}}
+                        <!-- Affiche juste la version comme texte s'il n'y en a qu'une -->
+                        {{with index .Versions 0}}
+                        <p class="mt-2 text-sm text-gray-600">Version: {{.Version}}</p>
+                        {{end}}
+                        {{end}}
                     </div>
                     <div class="flex gap-2">
                         {{with index .Versions 0}} <!-- Utilise la première version pour les URLs initiales -->

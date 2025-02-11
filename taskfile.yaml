@@ -40,7 +40,7 @@ tasks:
     desc: Test push chart
     dir: src/test
     cmds:
-    - helm push src/test/my-chart-0.1.0.tgz oci://localhost:3030/my-chart --plain-http
+    - helm push  my-chart-0.1.0.tgz oci://localhost:3030/my-chart
 
 default:
   desc: List available tasks
