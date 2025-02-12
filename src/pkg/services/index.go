@@ -67,7 +67,6 @@ func NewIndexService(config *config.Config, log *logrus.Logger, chartService int
 		pathManager:  storage.NewPathManager(config.Storage.Path, log),
 		config:       config,
 		log:          log,
-		baseURL:      config.Helm.BaseURL,
 		chartService: chartService,
 	}
 }

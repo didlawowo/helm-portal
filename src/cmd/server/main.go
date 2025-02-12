@@ -16,19 +16,15 @@ import (
 )
 
 // setupServices initialise et configure tous les services
-func setupServices(cfg *config.Config, log *logrus.Logger) (interfaces.ChartServiceInterface, interfaces.IndexServiceInterface) {
+func setupServices(cfg *config.Config, log *logrus.Logger) (interfaces.ChartServiceInterface, interfaces.IndexServiceInterface, *service.BackupService) {
 	// 1. Initialiser le PathManager (utilisé par les deux services)
 
-	// 2. Créer un ChartService temporaire sans IndexService
 	tmpChartService := service.NewChartService(cfg, log, nil)
-
-	// 3. Créer l'IndexService avec le ChartService temporaire
 	indexService := service.NewIndexService(cfg, log, tmpChartService)
-
-	// 4. Créer le ChartService final avec l'IndexService
 	finalChartService := service.NewChartService(cfg, log, indexService)
+	backupService := service.NewBackupService(cfg, log)
 
-	return finalChartService, indexService
+	return finalChartService, indexService, backupService
 }
 
 // setupHandlers initialise tous les handlers
@@ -36,14 +32,17 @@ func setupHandlers(
 	chartService interfaces.ChartServiceInterface,
 	_ interfaces.IndexServiceInterface,
 	pathManager *storage.PathManager,
+	backupService *service.BackupService,
 	log *logrus.Logger,
-) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler) {
+
+) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler, *handlers.BackupHandler) {
 	helmHandler := handlers.NewHelmHandler(chartService, pathManager, log)
 	ociHandler := handlers.NewOCIHandler(chartService, log)
 	configHandler := handlers.NewConfigHandler(&config.Config{}, log)
 	indexHandler := handlers.NewIndexHandler(chartService, pathManager, log)
+	backupHandler := handlers.NewBackupHandler(backupService, log)
 
-	return helmHandler, ociHandler, configHandler, indexHandler
+	return helmHandler, ociHandler, configHandler, indexHandler, backupHandler
 }
 
 // Dans main.go
@@ -100,13 +99,15 @@ func main() {
 	pathManager := storage.NewPathManager(cfg.Storage.Path, log)
 
 	// Services
-	chartService, indexService := setupServices(cfg, log)
+	chartService, indexService, backupService := setupServices(cfg, log)
 
 	// Handlers
-	helmHandler, ociHandler, configHandler, indexHandler := setupHandlers(
+	helmHandler, ociHandler, configHandler, indexHandler, backupHandler := setupHandlers(
 		chartService,
 		indexService,
 		pathManager,
+		backupService,
+
 		log,
 	)
 
@@ -160,7 +161,7 @@ func main() {
 	ociGroup := app.Group("/v2")
 	ociGroup.Use(authMiddleware.Authenticate())
 
-	// Routes Helm
+	// Routes Portal Interface
 	app.Get("/", helmHandler.DisplayHome)
 	app.Get("/chart/:name/:version/details", helmHandler.DisplayChartDetails)
 	app.Delete("/chart/:name/:version", helmHandler.DeleteChart)
@@ -170,6 +171,10 @@ func main() {
 	app.Get("/index.yaml", indexHandler.GetIndex)
 	app.Get("/charts", helmHandler.ListCharts)
 	app.Get("/chart/:name/versions", helmHandler.GetChartVersions)
+
+	// Routes Backup
+	app.Post("/backup", backupHandler.HandleBackup)
+	app.Post("/restore", backupHandler.HandleRestore)
 
 	// Routes OCI
 	ociGroup.Get("/", ociHandler.HandleOCIAPI)

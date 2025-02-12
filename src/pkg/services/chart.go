@@ -45,7 +45,6 @@ func NewChartService(config *config.Config, log *logrus.Logger, indexUpdater Ind
 		pathManager:  storage.NewPathManager(config.Storage.Path, log),
 		config:       config,
 		log:          log,
-		baseURL:      config.Helm.BaseURL,
 		indexUpdater: indexUpdater,
 	}
 }

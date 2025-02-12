@@ -34,6 +34,7 @@ WORKDIR /app
 
 # Copier l'exécutable depuis le builder
 COPY --from=builder /app/helm-portal .
+COPY --from=builder /app/views ./views
 
 # Définir les permissions
 RUN chown -R app:app /app

@@ -17,6 +17,11 @@ type ChartServiceInterface interface {
 	ExtractChartMetadata(chartData []byte) (*models.ChartMetadata, error)
 }
 
+type BackupServiceInterface interface {
+	BackupCharts() error
+	RestoreCharts() error
+}
+
 type IndexServiceInterface interface {
 	UpdateIndex() error
 	GetIndexPath() string

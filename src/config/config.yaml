@@ -1,12 +1,19 @@
 server:
   port: 3030
-  tls:
-    certFile: "certs/ca.cert"
-    keyFile: "certs/ca.key"
-  host: "localhost"
 
 storage:
   path: "data"
+
+backup:
+  gcp:
+    bucket: "helm-portal-backup"
+    projectID: "dc-consulting-home"
+    credentialsFile: "config/dc-consulting-home-pulumi.json"
+  # aws:
+  #   bucket: "helm-portal-backup"
+  #   region: "eu-west-1"
+  #   accessKeyID: "YOUR_ACCESS_KEY_ID"
+  #   secretAccessKey: "YOUR_SECRET_ACCESS_KEY"
 
 auth:
   enabled: true
@@ -15,10 +22,6 @@ auth:
     password: "admin123"
   - username: "dev"
     password: "dev123"
-
-helm:
-  baseURL: "https://localhost:3030"
-  maxChartSize: "100Mi" # optionnel
 
 logging:
   level: "info"

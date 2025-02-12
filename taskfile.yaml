@@ -18,6 +18,11 @@ tasks:
     cmds:
     - docker compose up -d
 
+  stop:
+    desc: stop the Docker container
+    cmds:
+    - docker compose down
+
   test-handlers:
     desc: Test handlers
     dir: src/pkg-handlers
