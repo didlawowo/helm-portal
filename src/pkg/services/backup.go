@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"helm-portal/config"
-	"helm-portal/pkg/storage"
+	"helm-portal/pkg/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -21,26 +21,19 @@ import (
 
 // BackupService handles backup operations to cloud providers
 type BackupService struct {
-	pathManager *storage.PathManager
+	pathManager *utils.PathManager
 	config      *config.Config
-	log         *logrus.Logger
+	log         *utils.Logger
 	awsSession  *session.Session
 	s3Client    *s3.S3
 	gcsClient   *gcs.Client
 }
 
 // NewBackupService creates a new backup service
-func NewBackupService(config *config.Config, log *logrus.Logger) *BackupService {
-
-	log.SetLevel(logrus.DebugLevel)
-
-	log.WithFields(logrus.Fields{
-		"gcp_bucket":  config.Backup.GCP.Bucket,
-		"gcp_project": config.Backup.GCP.ProjectID,
-	}).Debug("🔍 Configuration loaded")
+func NewBackupService(config *config.Config, log *utils.Logger) *BackupService {
 
 	srv := &BackupService{
-		pathManager: storage.NewPathManager(config.Storage.Path, log),
+		pathManager: utils.NewPathManager(config.Storage.Path, log),
 		config:      config,
 		log:         log,
 	}
@@ -69,24 +62,20 @@ func NewBackupService(config *config.Config, log *logrus.Logger) *BackupService 
 			return srv
 		}
 
-		if config.Backup.GCP.Bucket != "" {
-			log.Info("🔧 Initializing GCP client")
-			ctx := context.Background()
-			client, err := gcs.NewClient(ctx, option.WithCredentialsFile(config.Backup.GCP.CredentialsFile))
-			if err != nil {
-				log.WithError(err).Error("❌ Failed to initialize GCP client")
-				return srv
-			}
-			srv.gcsClient = client
+		log.Info("🔧 Initializing GCP client")
+		ctx := context.Background()
+		client, err := gcs.NewClient(ctx, option.WithCredentialsFile(config.Backup.GCP.CredentialsFile))
+		if err != nil {
+			log.WithError(err).Error("❌ Failed to initialize GCP client")
+			return srv
+		}
+		srv.gcsClient = client
 
-			// Vérifier que le bucket existe
-			_, err = client.Bucket(config.Backup.GCP.Bucket).Attrs(ctx)
-			if err != nil {
-				log.WithError(err).Error("❌ Failed to access GCP bucket")
-				return srv
-			}
-
-			log.Info("✅ GCP client initialized successfully")
+		// Vérifier que le bucket existe
+		_, err = client.Bucket(config.Backup.GCP.Bucket).Attrs(ctx)
+		if err != nil {
+			log.WithError(err).Error("❌ Failed to access GCP bucket")
+			return srv
 		}
 
 	}

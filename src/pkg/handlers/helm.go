@@ -1,31 +1,25 @@
-// internal/api/handlers/chart_handlers.go
-
 package handlers
 
 import (
 	"fmt"
-	"io"
-
-	"strings"
-
-	"helm-portal/pkg/interfaces"
-	storage "helm-portal/pkg/storage"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
+	"helm-portal/pkg/interfaces"
+	utils "helm-portal/pkg/utils"
+	"io"
+	"strings"
 )
 
-// ChartHandler manages chart operations
 type HelmHandler struct {
 	service     interfaces.ChartServiceInterface
-	log         *logrus.Logger
-	pathManager *storage.PathManager
+	log         *utils.Logger
+	pathManager *utils.PathManager
 }
 
 type IndexHandler struct {
 	service     interfaces.ChartServiceInterface
-	log         *logrus.Logger
-	pathManager *storage.PathManager
+	log         *utils.Logger
+	pathManager *utils.PathManager
 }
 
 type ErrorResponse struct {
@@ -36,9 +30,7 @@ func sendError(c *fiber.Ctx, status int, message string) error {
 	return c.Status(status).JSON(ErrorResponse{Error: message})
 }
 
-// NewChartHandler creates a new handler instance
-func NewHelmHandler(service interfaces.ChartServiceInterface, pathManager *storage.PathManager, logger *logrus.Logger) *HelmHandler {
-
+func NewHelmHandler(service interfaces.ChartServiceInterface, pathManager *utils.PathManager, logger *utils.Logger) *HelmHandler {
 	return &HelmHandler{
 		service:     service,
 		log:         logger,
@@ -46,8 +38,7 @@ func NewHelmHandler(service interfaces.ChartServiceInterface, pathManager *stora
 	}
 }
 
-func NewIndexHandler(service interfaces.ChartServiceInterface, pathManager *storage.PathManager, logger *logrus.Logger) *IndexHandler {
-
+func NewIndexHandler(service interfaces.ChartServiceInterface, pathManager *utils.PathManager, logger *utils.Logger) *IndexHandler {
 	return &IndexHandler{
 		service:     service,
 		log:         logger,
@@ -57,8 +48,11 @@ func NewIndexHandler(service interfaces.ChartServiceInterface, pathManager *stor
 
 func (h *HelmHandler) GetChartVersions(c *fiber.Ctx) error {
 	name := c.Params("name")
+	h.log.WithFunc().WithField("chart", name).Debug("Fetching chart versions")
+
 	chartGroups, err := h.service.ListCharts()
 	if err != nil {
+		h.log.WithFunc().WithError(err).Error("Failed to fetch chart versions")
 		return c.Status(500).JSON(fiber.Map{
 			"error": "Failed to fetch chart versions",
 		})
@@ -70,6 +64,7 @@ func (h *HelmHandler) GetChartVersions(c *fiber.Ctx) error {
 		}
 	}
 
+	h.log.WithFunc().WithField("chart", name).Debug("Chart not found")
 	return c.Status(404).JSON(fiber.Map{
 		"error": "Chart not found",
 	})
@@ -77,13 +72,7 @@ func (h *HelmHandler) GetChartVersions(c *fiber.Ctx) error {
 
 func (h *IndexHandler) GetIndex(c *fiber.Ctx) error {
 	indexPath := h.pathManager.GetIndexPath()
-
-	h.log.WithFields(logrus.Fields{
-		"path": indexPath,
-		// "ip":   c.IP(),
-	}).Info("Requesting index.yaml")
-
-	// Envoyer le fichier
+	h.log.WithFunc().WithField("path", indexPath).Debug("Processing index.yaml request")
 	return c.SendFile(indexPath)
 }
 
@@ -91,13 +80,16 @@ func (h *HelmHandler) GetChart(c *fiber.Ctx) error {
 	chartName := c.Params("name")
 	version := c.Params("version")
 
-	h.log.WithFields(logrus.Fields{
-		"chart": chartName,
-		// "ip":    c.IP(),
-	}).Info("Requesting chart")
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"chart":   chartName,
+		"version": version,
+	}).Debug("Processing chart request")
 
 	if !h.service.ChartExists(chartName, version) {
-		h.log.WithField("chart", chartName).Warn("Chart not found")
+		h.log.WithFunc().WithFields(logrus.Fields{
+			"chart":   chartName,
+			"version": version,
+		}).Debug("Chart not found")
 		return c.Status(404).SendString("Chart not found")
 	}
 
@@ -105,102 +97,105 @@ func (h *HelmHandler) GetChart(c *fiber.Ctx) error {
 }
 
 func (h *HelmHandler) ListCharts(c *fiber.Ctx) error {
+	h.log.WithFunc().Debug("Listing all charts")
+
 	charts, err := h.service.ListCharts()
 	if err != nil {
-		h.log.WithError(err).Error("Failed to list charts")
+		h.log.WithFunc().WithError(err).Error("Failed to list charts")
 		return c.Status(500).SendString("Failed to list charts")
 	}
 	return c.JSON(charts)
 }
 
-// UploadChart gère POST /charts
 func (h *HelmHandler) UploadChart(c *fiber.Ctx) error {
-	// Récupérer le fichier uploadé
+	h.log.WithFunc().Debug("Processing chart upload")
+
 	file, err := c.FormFile("chart")
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get uploaded file")
+		h.log.WithFunc().WithError(err).Error("Failed to get uploaded file")
 		return c.Status(400).JSON(fiber.Map{"error": "No chart file provided"})
 	}
 
-	// Vérifier l'extension
 	if !strings.HasSuffix(file.Filename, ".tgz") {
-		h.log.WithField("filename", file.Filename).Error("Invalid file type")
+		h.log.WithFunc().WithField("filename", file.Filename).Error("Invalid file type")
 		return c.Status(400).JSON(fiber.Map{"error": "Chart must be a .tgz file"})
 	}
 
-	// Ouvrir le fichier
 	fileContent, err := file.Open()
 	if err != nil {
-		h.log.WithError(err).Error("Failed to open uploaded file")
+		h.log.WithFunc().WithError(err).Error("Failed to open uploaded file")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to process file"})
 	}
 	defer fileContent.Close()
 
-	// Lire le contenu
 	chartData, err := io.ReadAll(fileContent)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to read file content")
+		h.log.WithFunc().WithError(err).Error("Failed to read file content")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to read file"})
 	}
 
-	// Sauvegarder via le service
 	if err := h.service.SaveChart(chartData, file.Filename); err != nil {
-		h.log.WithError(err).Error("Failed to save chart")
+		h.log.WithFunc().WithError(err).Error("Failed to save chart")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to save chart"})
 	}
 
-	// return c.JSON(fiber.Map{
-	// 	"message": "Chart uploaded successfully",
-	// 	"name":    file.Filename,
-	// })
-	return c.Redirect("/", fiber.StatusSeeOther) // 303 See Other est le code approprié pour une redirection POST→GET
-
+	h.log.WithFunc().WithField("filename", file.Filename).Info("Chart uploaded successfully")
+	return c.Redirect("/", fiber.StatusSeeOther)
 }
 
 func (h *HelmHandler) DownloadChart(c *fiber.Ctx) error {
 	name := c.Params("name")
 	version := c.Params("version")
 
-	// 🔍 Log de debug
-	h.log.WithField("name", name).WithField("version", version).Info("Downloading chart")
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":    name,
+		"version": version,
+	}).Debug("Processing chart download")
 
 	chart, err := h.service.GetChart(name, version)
 	if err != nil {
-		h.log.WithError(err).Error("❌ Failed to get chart")
+		h.log.WithFunc().WithError(err).Error("Failed to get chart")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to get chart"})
 	}
 
-	// 📁 Nom du fichier
 	fileName := fmt.Sprintf("%s-%s.tgz", name, version)
-
-	// 📥 Configuration des headers pour le téléchargement
 	c.Set("Content-Type", "application/x-tar")
 	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
 
-	// ✅ Envoi du fichier
-	return c.Send(chart) // Envoi du contenu du chart, pas juste le nom
+	return c.Send(chart)
 }
 
 func (h *HelmHandler) DeleteChart(c *fiber.Ctx) error {
 	name := c.Params("name")
 	version := c.Params("version")
+
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":    name,
+		"version": version,
+	}).Debug("Processing chart deletion")
+
 	if err := h.service.DeleteChart(name, version); err != nil {
-		h.log.WithError(err).Error("Failed to delete chart")
+		h.log.WithFunc().WithError(err).Error("Failed to delete chart")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to delete chart"})
 	}
+
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":    name,
+		"version": version,
+	}).Info("Chart deleted successfully")
 	return c.JSON(fiber.Map{"message": "Chart deleted successfully"})
 }
 
 func (h *HelmHandler) DisplayHome(c *fiber.Ctx) error {
+	h.log.WithFunc().Debug("Processing home page request")
+
 	chartGroups, err := h.service.ListCharts()
 	if err != nil {
-		h.log.WithError(err).Error("Failed to list charts")
+		h.log.WithFunc().WithError(err).Error("Failed to list charts")
 		return c.Status(500).Render("error", fiber.Map{
 			"Error": "Failed to load charts",
 		})
 	}
-
-	// Grouper les charts par nom
 
 	return c.Render("home", fiber.Map{
 		"Charts": chartGroups,
@@ -212,19 +207,22 @@ func (h *HelmHandler) DisplayChartDetails(c *fiber.Ctx) error {
 	name := c.Params("name")
 	version := c.Params("version")
 
-	// Récupération des détails du chart
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":    name,
+		"version": version,
+	}).Debug("Processing chart details request")
+
 	chart, err := h.service.GetChartDetails(name, version)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get chart")
+		h.log.WithFunc().WithError(err).Error("Failed to get chart details")
 		return c.Status(500).Render("error", fiber.Map{
 			"Error": "Failed to load chart",
 		})
 	}
 
-	// Lecture du fichier values.yaml
 	valuesContent, err := h.service.GetChartValues(name, version)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to read values.yaml")
+		h.log.WithFunc().WithError(err).Debug("Values.yaml not found")
 		valuesContent = "No values.yaml found"
 	}
 

@@ -13,7 +13,7 @@ import (
 	"helm-portal/config"
 
 	"helm-portal/pkg/interfaces"
-	"helm-portal/pkg/storage"
+	utils "helm-portal/pkg/utils"
 
 	"os"
 	"path/filepath"
@@ -41,14 +41,14 @@ type ChartVersion struct {
 
 // ChartExtractor extrait les informations des charts
 type ChartExtractor struct {
-	pathManager *storage.PathManager
-	log         *logrus.Logger
+	pathManager *utils.PathManager
+	log         *utils.Logger
 }
 
 type IndexService struct {
-	pathManager  *storage.PathManager
+	pathManager  *utils.PathManager
 	config       *config.Config
-	log          *logrus.Logger
+	log          *utils.Logger
 	baseURL      string
 	chartService interfaces.ChartServiceInterface
 }
@@ -58,13 +58,13 @@ func (s *IndexService) GetIndexPath() string {
 	panic("unimplemented")
 }
 
-func NewIndexService(config *config.Config, log *logrus.Logger, chartService interfaces.ChartServiceInterface) *IndexService {
+func NewIndexService(config *config.Config, log *utils.Logger, chartService interfaces.ChartServiceInterface) *IndexService {
 	if err := os.MkdirAll(config.Storage.Path, 0755); err != nil {
 		log.WithError(err).Error("❌ Impossible de créer le dossier de stockage")
 	}
 
 	return &IndexService{
-		pathManager:  storage.NewPathManager(config.Storage.Path, log),
+		pathManager:  utils.NewPathManager(config.Storage.Path, log),
 		config:       config,
 		log:          log,
 		chartService: chartService,

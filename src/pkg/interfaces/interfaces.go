@@ -2,7 +2,7 @@ package interfaces
 
 import (
 	"helm-portal/pkg/models"
-	"helm-portal/pkg/storage"
+	storage "helm-portal/pkg/utils"
 )
 
 type ChartServiceInterface interface {

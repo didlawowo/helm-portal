@@ -3,7 +3,7 @@ package handlers
 
 import (
 	"helm-portal/pkg/models"
-	"helm-portal/pkg/storage"
+	utils "helm-portal/pkg/utils"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -37,9 +37,9 @@ func (m *MockChartService) ChartExists(name string, version string) bool {
 	return args.Bool(0)
 }
 
-func (m *MockChartService) GetPathManager() *storage.PathManager {
+func (m *MockChartService) GetPathManager() *utils.PathManager {
 	args := m.Called()
-	return args.Get(0).(*storage.PathManager)
+	return args.Get(0).(*utils.PathManager)
 }
 
 func (m *MockChartService) GetChartValues(name, version string) (string, error) {

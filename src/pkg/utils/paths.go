@@ -1,5 +1,5 @@
 // pkg/storage/paths.go
-package storage
+package utils
 
 import (
 	"crypto/sha256"
@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"helm-portal/pkg/models"
+
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,10 +17,10 @@ import (
 
 type PathManager struct {
 	baseStoragePath string
-	log             *logrus.Logger
+	log             *Logger
 }
 
-func NewPathManager(basePath string, log *logrus.Logger) *PathManager {
+func NewPathManager(basePath string, log *Logger) *PathManager {
 	// Créer les dossiers nécessaires
 	dirs := []string{
 		"temp",  // Pour les uploads temporaires

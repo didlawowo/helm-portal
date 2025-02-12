@@ -1,15 +1,12 @@
-// pkg/handlers/oci_handlers.go
 package handlers
 
 import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-
 	interfaces "helm-portal/pkg/interfaces"
 	"helm-portal/pkg/models"
-	storage "helm-portal/pkg/storage"
-
+	utils "helm-portal/pkg/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,12 +17,12 @@ import (
 )
 
 type OCIHandler struct {
-	log         *logrus.Logger
+	log         *utils.Logger
 	service     interfaces.ChartServiceInterface
-	pathManager *storage.PathManager
+	pathManager *utils.PathManager
 }
 
-func NewOCIHandler(service interfaces.ChartServiceInterface, log *logrus.Logger) *OCIHandler {
+func NewOCIHandler(service interfaces.ChartServiceInterface, log *utils.Logger) *OCIHandler {
 	return &OCIHandler{
 		service:     service,
 		log:         log,
@@ -33,8 +30,8 @@ func NewOCIHandler(service interfaces.ChartServiceInterface, log *logrus.Logger)
 	}
 }
 
-// Vérification API - Répond avec les fonctionnalités supportées
 func (h *OCIHandler) HandleOCIAPI(c *fiber.Ctx) error {
+	h.log.WithFunc().Debug("Processing API request")
 	return c.JSON(fiber.Map{
 		"apiVersion":            "2.0",
 		"docker-content-digest": true,
@@ -42,37 +39,36 @@ func (h *OCIHandler) HandleOCIAPI(c *fiber.Ctx) error {
 	})
 }
 
-// Add this function to handle GET blob requests
 func (h *OCIHandler) GetBlob(c *fiber.Ctx) error {
 	digest := c.Params("digest")
 	name := c.Params("name")
 
-	h.log.WithFields(logrus.Fields{
+	h.log.WithFunc().WithFields(logrus.Fields{
 		"chart":  name,
 		"digest": digest,
-	}).Info("📥 Get Blob Request")
+	}).Debug("Processing blob download request")
 
-	// Reuse your existing getBlobByDigest function
 	blobData, err := h.getBlobByDigest(digest)
 	if err != nil {
 		if os.IsNotExist(err) {
+			h.log.WithFunc().WithError(err).Debug("Blob not found")
 			return c.SendStatus(404)
 		}
-		h.log.WithError(err).Error("Failed to get blob")
+		h.log.WithFunc().WithError(err).Error("Failed to retrieve blob")
 		return c.SendStatus(500)
 	}
 
 	c.Set("Docker-Content-Digest", digest)
 	c.Set("Content-Type", "application/octet-stream")
-
 	return c.Send(blobData)
 }
 
-// Liste des repositories
 func (h *OCIHandler) HandleCatalog(c *fiber.Ctx) error {
+	h.log.WithFunc().Debug("Processing catalog request")
+
 	charts, err := h.service.ListCharts()
 	if err != nil {
-		h.log.WithError(err).Error("Failed to list charts")
+		h.log.WithFunc().WithError(err).Error("Failed to list charts")
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to list charts"})
 	}
 
@@ -95,17 +91,17 @@ func (h *OCIHandler) HandleManifest(c *fiber.Ctx) error {
 	name := c.Params("name")
 	reference := c.Params("reference")
 
-	h.log.WithFields(logrus.Fields{
+	h.log.WithFunc().WithFields(logrus.Fields{
 		"name":      name,
 		"reference": reference,
-	}).Debug("Handling manifest request")
+	}).Debug("Processing manifest request")
 
 	var manifestPath string
 	if strings.HasPrefix(reference, "sha256:") {
 		manifestsDir := filepath.Join(h.pathManager.GetBasePath(), "manifests", name)
-		// Lister tous les manifests et trouver celui qui correspond au digest
 		files, err := os.ReadDir(manifestsDir)
 		if err != nil {
+			h.log.WithFunc().WithError(err).Debug("Manifest directory not found")
 			return c.SendStatus(404)
 		}
 
@@ -128,57 +124,49 @@ func (h *OCIHandler) HandleManifest(c *fiber.Ctx) error {
 	} else {
 		manifestPath = filepath.Join(h.pathManager.GetBasePath(), "manifests", name, reference+".json")
 	}
-	h.log.WithFields(logrus.Fields{
-		"manifestPath": manifestPath,
-		"exists":       fileExists(manifestPath), // Ajoutez une fonction helper
-	}).Debug("🔍 Looking for manifest")
 
-	h.log.WithFields(logrus.Fields{
+	h.log.WithFunc().WithFields(logrus.Fields{
 		"manifestPath": manifestPath,
-		"basePath":     h.pathManager.GetBasePath(),
-	}).Info("🔍 Searching manifest at")
+		"exists":       fileExists(manifestPath),
+	}).Debug("Checking manifest existence")
 
-	// Pour un HEAD request, on vérifie juste l'existence
 	if c.Method() == "HEAD" {
 		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+			h.log.WithFunc().WithError(err).Debug("Manifest not found for HEAD request")
 			return c.SendStatus(404)
 		}
 		return c.SendStatus(200)
 	}
 
-	// Lire le manifest
 	manifestData, err := os.ReadFile(manifestPath)
 	if err != nil {
-		h.log.WithError(err).WithField("path", manifestPath).Error("Failed to read manifest")
+		h.log.WithFunc().WithError(err).WithField("path", manifestPath).Error("Failed to read manifest")
 		return c.SendStatus(500)
 	}
 
-	// Si on a un digest, vérifier qu'il correspond
 	if strings.HasPrefix(reference, "sha256:") {
 		currentDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifestData))
 		if currentDigest != reference {
-			h.log.WithFields(logrus.Fields{
+			h.log.WithFunc().WithFields(logrus.Fields{
 				"expected": reference,
 				"got":      currentDigest,
-			}).Error("Digest mismatch")
+			}).Error("Manifest digest mismatch")
 			return c.SendStatus(404)
 		}
 	}
 
 	c.Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
 	c.Set("Docker-Content-Digest", fmt.Sprintf("sha256:%x", sha256.Sum256(manifestData)))
-
 	return c.Send(manifestData)
 }
 
 func (h *OCIHandler) getBlobByDigest(digest string) ([]byte, error) {
-	// Construire le chemin du blob à partir du digest
 	blobPath := h.pathManager.GetBlobPath(digest)
+	h.log.WithFunc().WithField("path", blobPath).Debug("Retrieving blob")
 
-	// Lire le contenu du blob
 	chartData, err := os.ReadFile(blobPath)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to read blob")
+		h.log.WithFunc().WithError(err).Error("Failed to read blob data")
 		return nil, fmt.Errorf("failed to read blob: %w", err)
 	}
 
@@ -191,20 +179,25 @@ func calculateDigest(data []byte) string {
 }
 
 func generateUUID() string {
-	uuid := uuid.New().String()
-	return uuid
+	return uuid.New().String()
 }
 
-// Fonction pour gérer la réception d'un blob
 func (h *OCIHandler) PutBlob(c *fiber.Ctx) error {
 	digest := calculateDigest(c.Body())
 	blobPath := h.pathManager.GetBlobPath(digest)
 
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"digest": digest,
+		"path":   blobPath,
+	}).Debug("Processing blob upload")
+
 	if err := os.MkdirAll(filepath.Dir(blobPath), 0755); err != nil {
+		h.log.WithFunc().WithError(err).Error("Failed to create blob directory")
 		return err
 	}
 
 	if err := os.WriteFile(blobPath, c.Body(), 0644); err != nil {
+		h.log.WithFunc().WithError(err).Error("Failed to write blob")
 		return err
 	}
 
@@ -215,6 +208,12 @@ func (h *OCIHandler) PutBlob(c *fiber.Ctx) error {
 func (h *OCIHandler) PostUpload(c *fiber.Ctx) error {
 	name := c.Params("name")
 	uuid := generateUUID()
+
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name": name,
+		"uuid": uuid,
+	}).Debug("Initializing upload")
+
 	location := fmt.Sprintf("/v2/%s/blobs/uploads/%s", name, uuid)
 	c.Set("Location", location)
 	c.Set("Docker-Upload-UUID", uuid)
@@ -225,30 +224,28 @@ func (h *OCIHandler) PatchBlob(c *fiber.Ctx) error {
 	uuid := c.Params("uuid")
 	tempPath := h.pathManager.GetTempPath(uuid)
 
-	h.log.WithFields(logrus.Fields{
+	h.log.WithFunc().WithFields(logrus.Fields{
 		"uuid": uuid,
 		"size": len(c.Body()),
 		"path": tempPath,
-	}).Info("📝 Receiving PATCH data")
+	}).Debug("Processing PATCH request")
 
-	// Créer le dossier temp s'il n'existe pas
 	if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
-		h.log.WithError(err).Error("Failed to create temp directory")
+		h.log.WithFunc().WithError(err).Error("Failed to create temp directory")
 		return c.SendStatus(500)
 	}
 
-	// Vérifier que les données sont bien reçues
 	if len(c.Body()) == 0 {
-		h.log.Error("Empty body received")
+		h.log.WithFunc().Error("Received empty body")
 		return c.Status(400).JSON(fiber.Map{"error": "Empty body"})
 	}
-	// Sauvegarder dans le dossier temp
+
 	if err := os.WriteFile(tempPath, c.Body(), 0644); err != nil {
-		h.log.WithError(err).Error("Failed to write temp file")
+		h.log.WithFunc().WithError(err).Error("Failed to write temp file")
 		return c.SendStatus(500)
 	}
-	h.log.Info("✅ PATCH data written successfully")
 
+	h.log.WithFunc().Info("Successfully processed PATCH data")
 	c.Set("Range", fmt.Sprintf("0-%d", len(c.Body())-1))
 	return c.SendStatus(202)
 }
@@ -256,77 +253,59 @@ func (h *OCIHandler) PatchBlob(c *fiber.Ctx) error {
 func (h *OCIHandler) CompleteUpload(c *fiber.Ctx) error {
 	name := c.Params("name")
 	uuid := c.Params("uuid")
-	digest := c.Query("digest") // SHA256 du contenu
+	digest := c.Query("digest")
 
-	// Déplacer le fichier temporaire vers son emplacement final
 	tempPath := h.pathManager.GetTempPath(uuid)
 	finalPath := h.pathManager.GetBlobPath(digest)
-	// version := c.Query("version")
+
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":      name,
+		"uuid":      uuid,
+		"digest":    digest,
+		"tempPath":  tempPath,
+		"finalPath": finalPath,
+	}).Debug("Completing upload")
+
 	if len(c.Body()) > 0 {
-
-		h.log.WithFields(logrus.Fields{
-			"uuid": uuid,
-			"size": len(c.Body()),
-		}).Info("📤 Receiving PUT data directly")
-
-		// Écrire les données reçues
 		if err := os.WriteFile(tempPath, c.Body(), 0644); err != nil {
-			h.log.WithError(err).Error("Failed to write PUT data")
+			h.log.WithFunc().WithError(err).Error("Failed to write final data")
 			return c.SendStatus(500)
 		}
 	}
-	h.log.WithFields(logrus.Fields{
-		"tempPath":  tempPath,
-		"finalPath": finalPath,
-	}).Info("Chemins utilisés")
 
 	if err := os.Rename(tempPath, finalPath); err != nil {
-		h.log.Error("❌ Erreur finalisation upload: ", err)
+		h.log.WithFunc().WithError(err).Error("Failed to finalize upload")
 		return c.SendStatus(500)
 	}
-	// h.service.CreateChartTgz(&models.ChartMetadata{
-	// 	Name:    name,
-	// 	Version: version,
-	// }, c.Body())
 
-	c.Set("Docker-Content-Digest", digest) // Ajoutez cette ligne
-
-	h.log.Info("✅ Upload terminé pour ", name)
-	return c.SendStatus(201) // 201 = Created
+	c.Set("Docker-Content-Digest", digest)
+	h.log.WithFunc().WithField("name", name).Info("Upload completed successfully")
+	return c.SendStatus(201)
 }
 
 func (h *OCIHandler) HeadBlob(c *fiber.Ctx) error {
-
 	digest := c.Params("digest")
 	name := c.Params("name")
-
-	h.log.WithFields(logrus.Fields{
-		"chart":  name,
-		"digest": digest,
-		"path":   c.Path(),
-	}).Info("🔍 Head Blob Request")
-
 	blobPath := h.pathManager.GetBlobPath(digest)
 
-	h.log.WithFields(logrus.Fields{
-		"headers":  c.GetReqHeaders(),
-		"method":   c.Method(),
-		"path":     c.Path(),
-		"blobPath": blobPath,
-	}).Debug("🔍 Full Head Blob Request details")
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"chart":  name,
+		"digest": digest,
+		"path":   blobPath,
+	}).Debug("Processing HEAD request")
 
 	if _, err := os.Stat(blobPath); err != nil {
 		if os.IsNotExist(err) {
-			h.log.WithError(err).Error("Blob not found")
+			h.log.WithFunc().WithError(err).Debug("Blob not found")
 			return c.SendStatus(404)
 		}
-		h.log.WithError(err).Error("Failed to check blob")
+		h.log.WithFunc().WithError(err).Error("Failed to check blob")
 		return c.SendStatus(500)
 	}
 
 	info, err := os.Stat(blobPath)
 	if err != nil {
-		h.log.WithError(err).Error("Failed to get blob info ")
+		h.log.WithFunc().WithError(err).Error("Failed to get blob info")
 		return c.SendStatus(500)
 	}
 
@@ -341,14 +320,17 @@ func (h *OCIHandler) PutManifest(c *fiber.Ctx) error {
 	name := c.Params("name")
 	reference := c.Params("reference")
 
-	// Décoder le manifest pour extraire les infos du chart
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":      name,
+		"reference": reference,
+	}).Debug("Processing manifest upload")
+
 	var manifest models.OCIManifest
 	if err := json.Unmarshal(c.Body(), &manifest); err != nil {
-		h.log.WithError(err).Error("❌ Erreur parsing manifest")
+		h.log.WithFunc().WithError(err).Error("Failed to parse manifest")
 		return c.SendStatus(500)
 	}
 
-	// Trouver le layer qui contient le chart
 	var chartLayer *struct {
 		MediaType string `json:"mediaType"`
 		Digest    string `json:"digest"`
@@ -363,38 +345,33 @@ func (h *OCIHandler) PutManifest(c *fiber.Ctx) error {
 	}
 
 	if chartLayer != nil {
-		// Récupérer le contenu du chart depuis le blob
 		chartData, err := h.getBlobByDigest(chartLayer.Digest)
 		if err != nil {
-			h.log.WithError(err).Error("❌ Erreur lecture chart data")
+			h.log.WithFunc().WithError(err).Error("Failed to read chart data")
 			return c.SendStatus(500)
 		}
 
-		// Sauvegarder le chart
 		fileName := fmt.Sprintf("%s-%s.tgz", name, reference)
 		if err := h.service.SaveChart(chartData, fileName); err != nil {
-			h.log.WithError(err).Error("❌ Erreur sauvegarde chart")
+			h.log.WithFunc().WithError(err).Error("Failed to save chart")
 			return c.SendStatus(500)
 		}
 	} else {
-		h.log.Error("❌ Layer du chart non trouvé")
+		h.log.WithFunc().Error("Chart layer not found in manifest")
 		return c.SendStatus(500)
 	}
+
 	manifestData := c.Body()
 	manifestPath := h.pathManager.GetManifestPath(name, reference)
-	h.log.WithFields(logrus.Fields{
-		"path": manifestPath,
-		"size": len(manifestData),
-	}).Info("📝  manifest")
 
 	manifestDir := filepath.Dir(manifestPath)
 	if err := os.MkdirAll(manifestDir, 0755); err != nil {
-		h.log.WithError(err).Error("❌ Erreur création dossier manifest")
+		h.log.WithFunc().WithError(err).Error("Failed to create manifest directory")
 		return c.SendStatus(500)
 	}
 
 	if err := os.WriteFile(manifestPath, manifestData, 0644); err != nil {
-		h.log.Error("❌ Erreur sauvegarde manifest: ", err)
+		h.log.WithFunc().WithError(err).Error("Failed to save manifest")
 		return c.SendStatus(500)
 	}
 
@@ -402,6 +379,6 @@ func (h *OCIHandler) PutManifest(c *fiber.Ctx) error {
 	digestStr := fmt.Sprintf("sha256:%x", digest)
 	c.Set("Docker-Content-Digest", digestStr)
 
-	h.log.Info("✅ Manifest sauvegardé pour ", name)
+	h.log.WithFunc().WithField("name", name).Info("Manifest saved successfully")
 	return c.SendStatus(201)
 }

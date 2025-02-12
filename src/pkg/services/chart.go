@@ -15,7 +15,7 @@ import (
 
 	"helm-portal/config"
 	"helm-portal/pkg/models"
-	"helm-portal/pkg/storage"
+	utils "helm-portal/pkg/utils"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -29,26 +29,26 @@ type IndexUpdater interface {
 
 // ChartService handles chart operations
 type ChartService struct {
-	pathManager  *storage.PathManager
+	pathManager  *utils.PathManager
 	config       *config.Config
-	log          *logrus.Logger
+	log          *utils.Logger
 	baseURL      string
 	indexUpdater IndexUpdater
 }
 
 // NewChartService creates a new chart service
-func NewChartService(config *config.Config, log *logrus.Logger, indexUpdater IndexUpdater) *ChartService {
+func NewChartService(config *config.Config, log *utils.Logger, indexUpdater IndexUpdater) *ChartService {
 	if err := os.MkdirAll(config.Storage.Path, 0755); err != nil {
 		log.WithError(err).Error("❌ Impossible de créer le dossier de stockage")
 	}
 	return &ChartService{
-		pathManager:  storage.NewPathManager(config.Storage.Path, log),
+		pathManager:  utils.NewPathManager(config.Storage.Path, log),
 		config:       config,
 		log:          log,
 		indexUpdater: indexUpdater,
 	}
 }
-func (s *ChartService) GetPathManager() *storage.PathManager {
+func (s *ChartService) GetPathManager() *utils.PathManager {
 	return s.pathManager
 }
 

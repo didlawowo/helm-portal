@@ -6,19 +6,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"helm-portal/pkg/storage"
+	"helm-portal/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestUploadChart(t *testing.T) {
 	// Setup
-	log := logrus.New()
+	logger := utils.NewLogger(utils.Config{
+		LogLevel:  "debug", // ou le niveau souhaité
+		LogFormat: "json",  // ou "text"
+		Pretty:    true,
+	})
+	log := utils.NewLogger(utils.Config{})
+
 	mockService := new(MockChartService)
-	pathManager := storage.NewPathManager("./charts", log)
+	pathManager := utils.NewPathManager("./charts", logger)
 	handler := NewHelmHandler(mockService, pathManager, log)
 
 	app := fiber.New()

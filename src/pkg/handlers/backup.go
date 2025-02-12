@@ -2,17 +2,17 @@ package handlers
 
 import (
 	services "helm-portal/pkg/services"
+	utils "helm-portal/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
 )
 
 type BackupHandler struct {
 	backupService *services.BackupService
-	log           *logrus.Logger
+	log           *utils.Logger
 }
 
-func NewBackupHandler(backupService *services.BackupService, log *logrus.Logger) *BackupHandler {
+func NewBackupHandler(backupService *services.BackupService, log *utils.Logger) *BackupHandler {
 	return &BackupHandler{
 		backupService: backupService,
 		log:           log,

@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"helm-portal/pkg/models"
-	"helm-portal/pkg/storage"
+	"helm-portal/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -23,9 +23,9 @@ func setupTestEnv(t *testing.T) (*fiber.App, *MockChartService, *OCIHandler, fun
 	assert.NoError(t, err)
 
 	// Setup components
-	log := logrus.New()
+	log := utils.NewLogger(utils.Config{})
 	mockService := new(MockChartService)
-	pathManager := storage.NewPathManager(tempDir, log)
+	pathManager := utils.NewPathManager(tempDir, log)
 
 	mockService.On("GetPathManager").Return(pathManager)
 

@@ -4,18 +4,18 @@ package handlers
 
 import (
 	config "helm-portal/config"
+	utils "helm-portal/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
 )
 
 // ChartHandler manages chart operations
 type ConfigHandler struct {
-	log    *logrus.Logger
+	log    *utils.Logger
 	config *config.Config
 }
 
-func NewConfigHandler(config *config.Config, logger *logrus.Logger) *ConfigHandler {
+func NewConfigHandler(config *config.Config, logger *utils.Logger) *ConfigHandler {
 
 	return &ConfigHandler{
 		config: config,

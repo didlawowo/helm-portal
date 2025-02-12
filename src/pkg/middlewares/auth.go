@@ -6,16 +6,17 @@ import (
 	"helm-portal/config"
 	"strings"
 
+	"helm-portal/pkg/utils"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
 )
 
 type AuthMiddleware struct {
 	config *config.Config
-	log    *logrus.Logger
+	log    *utils.Logger
 }
 
-func NewAuthMiddleware(config *config.Config, log *logrus.Logger) *AuthMiddleware {
+func NewAuthMiddleware(config *config.Config, log *utils.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		config: config,
 		log:    log,

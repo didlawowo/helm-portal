@@ -45,7 +45,7 @@ tasks:
     desc: Test push chart
     dir: src/test
     cmds:
-    - helm push  my-chart-0.1.0.tgz oci://localhost:3030/my-chart
+    - helm push  my-chart-0.1.0.tgz oci://localhost:3030/
 
   test-pull-chart:
     desc: Test pull chart

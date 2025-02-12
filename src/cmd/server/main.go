@@ -6,9 +6,7 @@ import (
 	"helm-portal/pkg/interfaces"
 	middleware "helm-portal/pkg/middlewares"
 	service "helm-portal/pkg/services"
-	"helm-portal/pkg/storage"
-
-	"os"
+	"helm-portal/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
@@ -16,7 +14,7 @@ import (
 )
 
 // setupServices initialise et configure tous les services
-func setupServices(cfg *config.Config, log *logrus.Logger) (interfaces.ChartServiceInterface, interfaces.IndexServiceInterface, *service.BackupService) {
+func setupServices(cfg *config.Config, log *utils.Logger) (interfaces.ChartServiceInterface, interfaces.IndexServiceInterface, *service.BackupService) {
 	// 1. Initialiser le PathManager (utilisé par les deux services)
 
 	tmpChartService := service.NewChartService(cfg, log, nil)
@@ -31,9 +29,9 @@ func setupServices(cfg *config.Config, log *logrus.Logger) (interfaces.ChartServ
 func setupHandlers(
 	chartService interfaces.ChartServiceInterface,
 	_ interfaces.IndexServiceInterface,
-	pathManager *storage.PathManager,
+	pathManager *utils.PathManager,
 	backupService *service.BackupService,
-	log *logrus.Logger,
+	log *utils.Logger,
 
 ) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler, *handlers.BackupHandler) {
 	helmHandler := handlers.NewHelmHandler(chartService, pathManager, log)
@@ -45,49 +43,23 @@ func setupHandlers(
 	return helmHandler, ociHandler, configHandler, indexHandler, backupHandler
 }
 
-// Dans main.go
-func setupHTTPServer(app *fiber.App, log *logrus.Logger) {
-	// go func() {
-	// 	// Serveur HTTP qui redirige vers HTTPS
-	// 	httpApp := fiber.New(fiber.Config{
-	// 		DisableStartupMessage: true,
-	// 	})
+func setupHTTPServer(app *fiber.App, log *utils.Logger) {
 
-	// 	// Middleware de redirection
-	// 	httpApp.Use(func(c *fiber.Ctx) error {
-	// 		httpsURL := "https://" + c.Hostname() + c.OriginalURL()
-	// 		log.WithFields(logrus.Fields{
-	// 			"from": c.OriginalURL(),
-	// 			"to":   httpsURL,
-	// 		}).Info("🔄 Redirecting HTTP to HTTPS")
-	// 		return c.Redirect(httpsURL, 301)
-	// 	})
-
-	// 	// Écouter sur le port HTTP
-	// 	if err := httpApp.Listen(":3030"); err != nil {
-	// 		log.WithError(err).Error("HTTP Server failed")
-	// 	}
-	// }()
-
-	// Serveur HTTPS principal
-	// log.Info("🔒 Starting HTTPS server on :3031")
-	// if err := app.ListenTLS(":3031", "certs/ca.crt", "certs/ca.key"); err != nil {
-	// 	log.WithError(err).Fatal("HTTPS Server failed")
-	// }
-	log.Info("🔒 Starting HTTP server on :3030")
+	log.WithFunc().Info("🚀 Application starting")
 
 	if err := app.Listen(":3030"); err != nil {
-		log.WithError(err).Fatal("HTTP Server failed")
+		log.WithFunc().Fatal("HTTP Server failed")
 	}
 }
 
 func main() {
 	// Logger setup
-	log := logrus.New()
-	log.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
-	log.SetOutput(os.Stdout)
-	// log.SetLevel(logrus.InfoLevel)
-	log.SetLevel(logrus.DebugLevel) // <-- Modifier cette ligne
+	logConfig := utils.Config{
+		LogLevel:  "debug", // ou depuis votre config
+		LogFormat: "json",  // ou "text"
+		Pretty:    true,
+	}
+	log := utils.NewLogger(logConfig)
 
 	// Configuration
 	cfg, err := config.LoadConfig("config/config.yaml")
@@ -96,7 +68,7 @@ func main() {
 	}
 
 	// PathManager
-	pathManager := storage.NewPathManager(cfg.Storage.Path, log)
+	pathManager := utils.NewPathManager(cfg.Storage.Path, log)
 
 	// Services
 	chartService, indexService, backupService := setupServices(cfg, log)
@@ -107,7 +79,6 @@ func main() {
 		indexService,
 		pathManager,
 		backupService,
-
 		log,
 	)
 
