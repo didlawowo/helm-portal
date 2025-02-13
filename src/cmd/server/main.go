@@ -15,13 +15,15 @@ import (
 
 // setupServices initialise et configure tous les services
 func setupServices(cfg *config.Config, log *utils.Logger) (interfaces.ChartServiceInterface, interfaces.IndexServiceInterface, *service.BackupService) {
-	// 1. Initialiser le PathManager (utilisé par les deux services)
 
 	tmpChartService := service.NewChartService(cfg, log, nil)
 	indexService := service.NewIndexService(cfg, log, tmpChartService)
 	finalChartService := service.NewChartService(cfg, log, indexService)
-	backupService := service.NewBackupService(cfg, log)
-
+	backupService, err := service.NewBackupService(cfg, log)
+	if err != nil {
+		log.WithFunc().WithError(err).Fatal("Failed to initialize backup service")
+		// Gérer l'erreur selon votre logique d'application
+	}
 	return finalChartService, indexService, backupService
 }
 

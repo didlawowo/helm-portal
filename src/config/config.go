@@ -59,6 +59,7 @@ func LoadConfig(path string) (*Config, error) {
 	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("❌ error parsing config: %w", err)
 	}
+	fmt.Printf("🔍 Loaded config: %+v\n", config.Backup) // Ajoutez ceci
 
 	return config, nil
 }

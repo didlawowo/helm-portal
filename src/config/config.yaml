@@ -25,3 +25,4 @@ auth:
 
 logging:
   level: "info"
+  format: "text"
