@@ -23,6 +23,7 @@ services:
       - helm-network
 
   helm-portal:
+    image: fizzbuzz2/helm-portal:latest
     build: .
     container_name: helm-portal
     volumes:
