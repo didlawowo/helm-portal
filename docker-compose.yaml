@@ -24,7 +24,8 @@ services:
 
   helm-portal:
     image: fizzbuzz2/helm-portal:latest
-    build: .
+    build: 
+      context: src
     container_name: helm-portal
     volumes:
       - ./charts:/app/data  # Pour persister les charts
