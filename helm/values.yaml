@@ -89,3 +89,39 @@ readinessProbe:
   timeoutSeconds: 3
   successThreshold: 1
   failureThreshold: 3
+
+## application
+# Configuration du serveur
+server:
+  port: 3030
+
+# Configuration du stockage
+storage:
+  path: "data"
+
+# Configuration des sauvegardes
+backup:
+  gcp:
+    bucket: "helm-portal-backup"
+    projectID: "dc-consulting-home"
+    credentialsFile: "config/dc-consulting-home-pulumi.json"
+  # Configuration AWS (commentée par défaut)
+  # aws:
+  #   bucket: "helm-portal-backup"
+  #   region: "eu-west-1"
+  #   accessKeyID: ""
+  #   secretAccessKey: ""
+
+  # Configuration d'authentification
+auth:
+  enabled: true
+  users:
+  - username: "admin"
+    password: "admin123"
+  - username: "dev"
+    password: "dev123"
+
+# Configuration de journalisation
+logging:
+  level: "info"
+  format: "text"

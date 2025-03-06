@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    app: {{ .Release.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  config.yaml: |-
+    server:
+      port: {{ .Values.server.port | default 3030 }}
+
+    storage:
+      path: {{ .Values.storage.path | default "data" | quote }}
+
+    backup:
+      gcp:
+        bucket: {{ .Values.backup.gcp.bucket | default "helm-portal-backup" | quote }}
+        projectID: {{ .Values.backup.gcp.projectID | default "dc-consulting-home" | quote }}
+        credentialsFile: {{ .Values.backup.gcp.credentialsFile | default "config/dc-consulting-home-pulumi.json" | quote }}
+
+    auth:
+      enabled: {{ .Values.auth.enabled | default true }}
+      users:
+      {{- range .Values.auth.users }}
+      - username: {{ .username | quote }}
+        password: {{ .password | quote }}
+      {{- end }}
+
+    logging:
+      level: {{ .Values.logging.level | default "info" | quote }}
+      format: {{ .Values.logging.format | default "text" | quote }}
