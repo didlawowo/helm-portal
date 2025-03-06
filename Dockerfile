@@ -12,7 +12,7 @@ COPY src/go.mod src/go.sum ./
 RUN go mod download
 
 # Installer orchestrion
-RUN go install github.com/DataDog/orchestrion@latest
+# RUN go install github.com/DataDog/orchestrion@latest
 
 # Copier le code source
 COPY src/ .
