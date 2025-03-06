@@ -1,6 +1,6 @@
 image:
   repository: fizzbuzz2/helm-portal
-  tag: a3b650c
+  tag: 98c8ead
   pullPolicy: "Always"
   pullSecrets:
   - name: registry-credentials
@@ -62,13 +62,18 @@ env:
 volumeMounts:
 - name: apmsocketpath
   mountPath: /var/run/datadog
+- name: config-volume
+  mountPath: /app/config
 volumes:
 - name: apmsocketpath
   hostPath:
     path: /var/run/datadog/
+- name: config-volume
+  configMap:
+    name: chris-beta-config
 envFrom: []
-nodeSelector:
-  kubernetes.io/arch: arm64
+# nodeSelector:
+#   kubernetes.io/arch: arm64
 livenessProbe:
   httpGet:
     scheme: HTTP
@@ -102,8 +107,8 @@ storage:
 # Configuration des sauvegardes
 backup:
   gcp:
-    bucket: "helm-portal-backup"
-    projectID: "dc-consulting-home"
+    bucket: "helm-portal-backup-pierre"
+    projectID: "crafteo-sandbox"
     credentialsFile: "config/dc-consulting-home-pulumi.json"
   # Configuration AWS (commentée par défaut)
   # aws:

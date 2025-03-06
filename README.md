@@ -85,3 +85,13 @@ The application uses a YAML configuration file for settings such as:
 
 🚧 This project is currently under development. Contributions are welcome!
 
+## Commands
+
+```sh
+helm install chris-beta ./helm
+helm upgrade --install chris-beta ./helm
+helm package ./helm
+helm repo add test-christian http://localhost:3030/
+helm registry login localhost:3030
+helm push ./helm-portal-1.1.0.tgz oci://localhost:3030
+```
