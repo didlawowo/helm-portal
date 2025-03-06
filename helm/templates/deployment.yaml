@@ -22,8 +22,8 @@ spec:
         tags.datadoghq.com/service: "jwt-signer"
         tags.datadoghq.com/version: "1.0"
       annotations:
-        ad.datadoghq.com/mtls-server.logs: '[{"source":"go","service":"jwt-signer"}]'
-        # ad.datadoghq.com/app.logs: '[{"source":"go","service":"mtls-server", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}\.[0-9]{3}"}]}]'
+        ad.datadoghq.com/helm-portal.logs: '[{"source":"go","service":"jwt-signer"}]'
+        # ad.datadoghq.com/app.logs: '[{"source":"go","service":"helm-portal", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}\.[0-9]{3}"}]}]'
 
     spec:
       serviceAccountName: {{ default (include "application.fullname" .) .Values.serviceAccount.name }}
