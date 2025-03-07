@@ -1,10 +1,9 @@
 image:
   repository: fizzbuzz2/helm-portal
   tag: 98c8ead
-  pullPolicy: "Always"
-  pullSecrets:
-  - name: registry-credentials
-domainName: "helm-portal.dc-tech.work"
+  pullPolicy: "IfNotPresent"
+  # pullSecrets:
+  # - name: registry-credentials
 autoscaling:
   enabled: false
 replicas: 1
@@ -19,7 +18,7 @@ serviceAccount:
 application:
   ports:
   - name: http
-    containerPort: 8000
+    containerPort: 3030
     protocol: TCP
   containerName: helm-portal
   command: []
@@ -37,43 +36,34 @@ resources:
     cpu: 150m
     memory: 128Mi
 env:
-- name: JWT_SECRET_KEY
-  value: my-super-jwt-secret-key
-- name: API_KEY
-  value: my-super-api-key
-- name: JWT_EXPECTED_ISSUER
-  value: jwt-signer
-- name: EXPECTED_AUDIENCE
-  value: audience
-- name: REQUIRE_SCOPE
-  value: "true"
-- name: DD_ENV
-  valueFrom:
-    fieldRef:
-      fieldPath: metadata.labels['tags.datadoghq.com/env']
-- name: DD_SERVICE
-  valueFrom:
-    fieldRef:
-      fieldPath: metadata.labels['tags.datadoghq.com/service']
-- name: DD_VERSION
-  valueFrom:
-    fieldRef:
-      fieldPath: metadata.labels['tags.datadoghq.com/version']
+
+# - name: DD_ENV
+#   valueFrom:
+#     fieldRef:
+#       fieldPath: metadata.labels['tags.datadoghq.com/env']
+# - name: DD_SERVICE
+#   valueFrom:
+#     fieldRef:
+#       fieldPath: metadata.labels['tags.datadoghq.com/service']
+# - name: DD_VERSION
+#   valueFrom:
+#     fieldRef:
+#       fieldPath: metadata.labels['tags.datadoghq.com/version']
 volumeMounts:
-- name: apmsocketpath
-  mountPath: /var/run/datadog
+# - name: apmsocketpath
+#   mountPath: /var/run/datadog
 - name: config-volume
   mountPath: /app/config
 volumes:
-- name: apmsocketpath
-  hostPath:
-    path: /var/run/datadog/
+# - name: apmsocketpath
+#   hostPath:
+#     path: /var/run/datadog/
 - name: config-volume
   configMap:
-    name: chris-beta-config
+    name: config
 envFrom: []
-# nodeSelector:
-#   kubernetes.io/arch: arm64
+nodeSelector:
+  kubernetes.io/arch: arm64
 livenessProbe:
   httpGet:
     scheme: HTTP
@@ -106,10 +96,10 @@ storage:
 
 # Configuration des sauvegardes
 backup:
-  gcp:
-    bucket: "helm-portal-backup-pierre"
-    projectID: "crafteo-sandbox"
-    credentialsFile: "config/dc-consulting-home-pulumi.json"
+  # gcp:
+  #   bucket: "helm-portal-backup-pierre"
+  #   projectID: "crafteo-sandbox"
+  #   credentialsFile: "config/dc-consulting-home-pulumi.json"
   # Configuration AWS (commentée par défaut)
   # aws:
   #   bucket: "helm-portal-backup"
@@ -123,8 +113,6 @@ auth:
   users:
   - username: "admin"
     password: "admin123"
-  - username: "dev"
-    password: "dev123"
 
 # Configuration de journalisation
 logging:

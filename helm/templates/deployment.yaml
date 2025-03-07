@@ -5,7 +5,7 @@ metadata:
   name: {{ template "application.fullname" . }}
   labels: {{- include "application.labels" . | nindent 4 }}
     tags.datadoghq.com/env: "home"
-    tags.datadoghq.com/service: "jwt-signer"
+    tags.datadoghq.com/service: "helm-portal"
     tags.datadoghq.com/version: "1.0"
   namespace: {{ .Release.Namespace }}
 spec:
@@ -18,11 +18,11 @@ spec:
   template:
     metadata:
       labels: {{- include "application.labels" . | nindent 8 }}
-        tags.datadoghq.com/env: "home"
-        tags.datadoghq.com/service: "jwt-signer"
-        tags.datadoghq.com/version: "1.0"
-      annotations:
-        ad.datadoghq.com/helm-portal.logs: '[{"source":"go","service":"jwt-signer"}]'
+        # tags.datadoghq.com/env: "home"
+        # tags.datadoghq.com/service: "helm-portal"
+        # tags.datadoghq.com/version: "1.0"
+      # annotations:
+      #   ad.datadoghq.com/helm-portal.logs: '[{"source":"go","service":"helm-portal"}]'
         # ad.datadoghq.com/app.logs: '[{"source":"go","service":"helm-portal", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}\.[0-9]{3}"}]}]'
 
     spec:

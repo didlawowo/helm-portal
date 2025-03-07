@@ -3,12 +3,11 @@ server:
 
 storage:
   path: "data"
-
-backup:
-  gcp:
-    bucket: "helm-portal-backup"
-    projectID: "dc-consulting-home"
-    credentialsFile: "config/dc-consulting-home-pulumi.json"
+  # backup:
+  # gcp:
+  #   bucket: "helm-portal-backup"
+  #   projectID: "dc-consulting-home"
+  #   credentialsFile: "config/dc-consulting-home-pulumi.json"
   # aws:
   #   bucket: "helm-portal-backup"
   #   region: "eu-west-1"
@@ -20,8 +19,6 @@ auth:
   users:
   - username: "admin"
     password: "admin123"
-  - username: "dev"
-    password: "dev123"
 
 logging:
   level: "info"

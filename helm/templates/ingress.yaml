@@ -5,9 +5,6 @@ metadata:
   namespace: {{ $.Release.Namespace | quote }}
   labels:
     app: {{ $.Release.Name | quote }}
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
-    traefik.ingress.kubernetes.io/router.middlewares: kube-infra-generic-dashboard-auth@kubernetescrd
 
 spec:
   ingressClassName: traefik

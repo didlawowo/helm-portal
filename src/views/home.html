@@ -51,34 +51,37 @@
 </style>
 
 <body class="bg-gray-100">
+    <!-- views/home.html - Navigation bar with integrated upload -->
     <nav class="bg-blue-600 text-white p-4 shadow-lg">
-        <div class="container mx-auto">
-            <img src="/favicon.ico" alt="Logo" class="h-8 w-8 inline-block mr-2">
-            <h1 class="text-2xl font-bold inline-block">Helm Portal</h1>
-        </div>
-        <form action="/backup" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row gap-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="/favicon.ico" alt="Logo" class="h-8 w-8 inline-block mr-2">
+                <h1 class="text-2xl font-bold inline-block mr-4">Helm Portal</h1>
 
-            <button type="submit"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
-                Backup
-            </button>
-        </form>
+                <!-- Backup button -->
+                <form action="/backup" method="POST" enctype="multipart/form-data" class="inline-block mr-4">
+                    <button type="submit"
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
+                        Backup
+                    </button>
+                </form>
+            </div>
+
+            <!-- Upload integrated in navbar -->
+            <form id="uploadForm" action="/chart" method="POST" enctype="multipart/form-data" class="flex items-center">
+                <label for="chartUpload" class="mr-2 font-medium text-white">Upload Chart:</label>
+                <input id="chartUpload" type="file" name="chart" accept=".tgz" required class="
+                text-white
+                file:mr-4 file:py-2 file:px-4
+                file:rounded file:border-0 
+                file:bg-blue-700 file:text-white
+                hover:file:bg-blue-800 cursor-pointer" onchange="this.form.submit()">
+            </form>
+        </div>
     </nav>
 
     <main class="container mx-auto p-4">
-        <!-- Upload Section -->
-        <div class="mt-8 bg-white rounded-lg shadow-md p-2 m-2">
-            <h2 class="text-xl font-bold mb-4">Upload New Chart</h2>
-            <form action="/chart" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row gap-4">
-                <input type="file" name="chart" accept=".tgz" required class="flex-1 border rounded p-2 file:mr-4 file:py-2 file:px-4
-                        file:rounded file:border-0 file:bg-blue-500 file:text-white
-                        hover:file:bg-blue-600 cursor-pointer">
-                <button type="submit"
-                    class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
-                    Upload
-                </button>
-            </form>
-        </div>
+
         <!-- List Charts Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {{range .Charts}}
@@ -141,5 +144,16 @@
 
 </body>
 <script src="/static/js/main.js"></script>
+<script>
+    // Ajouter au fichier JavaScript existant ou directement dans une balise script
+    document.getElementById('uploadForm').addEventListener('submit', function () {
+        // Afficher un message de chargement ou une animation
+        const fileInput = this.querySelector('input[type="file"]');
+        if (fileInput.files.length > 0) {
+            fileInput.insertAdjacentHTML('afterend',
+                '<span class="ml-2 text-blue-600">⏳ Uploading ' + fileInput.files[0].name + '...</span>');
+        }
+    });
+</script>
 
 </html>

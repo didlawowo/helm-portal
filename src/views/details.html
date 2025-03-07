@@ -60,7 +60,9 @@
             <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-2">Chart Values</h3>
                 <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                    <pre class="text-green-400 font-mono text-sm">{{.Chart.Values}}</pre>
+                    <div id="yaml-content" class="text-green-400 font-mono text-sm">
+                        <!-- Le contenu YAML sera formaté par JavaScript -->
+                    </div>
                 </div>
             </div>
 
@@ -76,5 +78,39 @@
         </div>
     </main>
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Récupérer le contenu YAML brut
+        const yamlContent = `{{.Chart.Values}}`;
+
+        // Formater et coloriser le YAML
+        const formattedYaml = formatYaml(yamlContent);
+
+        // Injecter dans le DOM
+        document.getElementById('yaml-content').innerHTML = formattedYaml;
+    });
+
+    function formatYaml(yaml) {
+        // Échapper les caractères HTML
+        const escaped = yaml.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // Formatter les lignes et mettre en évidence les clés/valeurs
+        const lines = escaped.split('\n');
+        const formatted = lines.map(line => {
+            // Mettre en évidence les clés et les valeurs
+            if (line.includes(':')) {
+                const parts = line.split(':');
+                const indentation = parts[0].match(/^\s*/)[0];
+                const key = parts[0].trim();
+                const value = parts.slice(1).join(':').trim();
+
+                return `${indentation}<span class="text-yellow-300 font-bold">${key}</span>: <span class="text-blue-300">${value}</span>`;
+            }
+            return line;
+        });
+
+        return formatted.join('<br>');
+    }
+</script>
 
 </html>

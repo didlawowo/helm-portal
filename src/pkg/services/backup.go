@@ -55,7 +55,10 @@ func NewBackupService(config *config.Config, log *utils.Logger) (*BackupService,
 			return nil, fmt.Errorf("❌ failed to initialize GCP client: %w", err)
 		}
 	} else {
-		return nil, fmt.Errorf("❌ no cloud provider configured - please configure either AWS or GCP backup settings")
+		// No backup provider configured
+		logrus.Info("No backup provider configured")
+		return nil, nil
+
 	}
 
 	return srv, nil

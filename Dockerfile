@@ -17,8 +17,8 @@ RUN go mod download
 # Copier le code source
 COPY src/ .
 
-# Exécuter orchestrion pin
-RUN orchestrion pin
+# Exécuter orchestrion pin pour datadog APM
+# RUN orchestrion pin
 
 # Construction
 RUN CGO_ENABLED=0 GOOS=linux go build -o helm-portal ./cmd/server/main.go
