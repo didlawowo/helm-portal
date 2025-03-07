@@ -1,6 +1,6 @@
 image:
   repository: fizzbuzz2/helm-portal
-  tag: 98c8ead
+  tag: 4dec4f0
   pullPolicy: "IfNotPresent"
   # pullSecrets:
   # - name: registry-credentials
@@ -17,9 +17,9 @@ serviceAccount:
   name: helm-portal
 application:
   ports:
-  - name: http
-    containerPort: 3030
-    protocol: TCP
+    - name: http
+      containerPort: 3030
+      protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -36,7 +36,6 @@ resources:
     cpu: 150m
     memory: 128Mi
 env:
-
 # - name: DD_ENV
 #   valueFrom:
 #     fieldRef:
@@ -50,18 +49,17 @@ env:
 #     fieldRef:
 #       fieldPath: metadata.labels['tags.datadoghq.com/version']
 volumeMounts:
-# - name: apmsocketpath
-#   mountPath: /var/run/datadog
-- name: config-volume
-  mountPath: /app/config
+  # - name: apmsocketpath
+  #   mountPath: /var/run/datadog
+  - name: config-volume
+    mountPath: /app/config
 volumes:
-# - name: apmsocketpath
-#   hostPath:
-#     path: /var/run/datadog/
-- name: config-volume
-  configMap:
-    name: config
-
+  # - name: apmsocketpath
+  #   hostPath:
+  #     path: /var/run/datadog/
+  - name: config-volume
+    configMap:
+      name: config
 livenessProbe:
   httpGet:
     scheme: HTTP
@@ -82,12 +80,10 @@ readinessProbe:
   timeoutSeconds: 3
   successThreshold: 1
   failureThreshold: 3
-
 ## application
 # Configuration du serveur
 server:
   port: 3030
-
 # Configuration du stockage
 storage:
   path: "data"
@@ -98,20 +94,19 @@ backup:
     bucket: "helm-portal-backup-pierre"
     projectID: "crafteo-sandbox"
     credentialsFile: "config/dc-consulting-home-pulumi.json"
-  # Configuration AWS (commentée par défaut)
-  # aws:
-  #   bucket: "helm-portal-backup"
-  #   region: "eu-west-1"
-  #   accessKeyID: ""
-  #   secretAccessKey: ""
+    # Configuration AWS (commentée par défaut)
+    # aws:
+    #   bucket: "helm-portal-backup"
+    #   region: "eu-west-1"
+    #   accessKeyID: ""
+    #   secretAccessKey: ""
+# Configuration d'authentification
 
-  # Configuration d'authentification
 auth:
   enabled: true
   users:
-  - username: "admin"
-    password: "admin123"
-
+    - username: "admin"
+      password: "admin123"
 # Configuration de journalisation
 logging:
   level: "info"
