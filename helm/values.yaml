@@ -60,7 +60,7 @@ volumes:
 #     path: /var/run/datadog/
 - name: config-volume
   configMap:
-    name: config
+    name: {{ .Release.Name }}-config
 envFrom: []
 nodeSelector:
   kubernetes.io/arch: arm64
@@ -93,10 +93,10 @@ server:
 # Configuration du stockage
 storage:
   path: "data"
-
-# Configuration des sauvegardes
-backup:
-  # gcp:
+  # Configuration des sauvegardes (commentée par défaut)
+  # backup:
+  gcp:
+    enabled: false
   #   bucket: "helm-portal-backup-pierre"
   #   projectID: "crafteo-sandbox"
   #   credentialsFile: "config/dc-consulting-home-pulumi.json"
