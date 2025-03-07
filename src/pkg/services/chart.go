@@ -175,7 +175,7 @@ func (s *ChartService) GetChart(chartName string, version string) ([]byte, error
 	if !s.ChartExists(chartName, version) {
 		return nil, fmt.Errorf("chart %s version %s not found", chartName, version)
 	}
-	// Lire le fichier
+
 	return os.ReadFile(chartPath)
 }
 
@@ -185,7 +185,6 @@ func (s *ChartService) GetChartDetails(chartName string, version string) (*model
 	if !s.ChartExists(chartName, version) {
 		return nil, fmt.Errorf("chart %s version %s not found", chartName, version)
 	}
-	// Lire le fichier
 	chartData, err := os.ReadFile(chartPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read chart: %w", err)

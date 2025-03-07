@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-config
+  name: {{ .Release.Name }}
   labels:
     app: {{ .Release.Name }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -9,7 +9,7 @@ metadata:
     heritage: {{ .Release.Service }}
 data:
   {{- if .Values.backup.gcp.enabled }}
-  dc-consulting-home-pulumi.json: |-
+  creds-gcp.json: |-
     {
       "type": "service_account",
       "project_id": "{{ .Values.backup.gcp.projectID }}",

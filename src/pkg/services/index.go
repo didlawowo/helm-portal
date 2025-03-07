@@ -151,13 +151,11 @@ func (s *IndexService) UpdateIndex() error {
 		}).Debug("✅ Chart ajouté à l'index")
 	}
 
-	// Convertir en YAML
 	indexYAML, err := yaml.Marshal(index)
 	if err != nil {
 		return fmt.Errorf("❌ erreur marshaling index: %w", err)
 	}
 
-	// Sauvegarder le fichier
 	indexPath := s.pathManager.GetIndexPath()
 	if err := os.WriteFile(indexPath, indexYAML, 0644); err != nil {
 		return fmt.Errorf("❌ erreur sauvegarde index: %w", err)

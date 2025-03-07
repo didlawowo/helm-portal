@@ -30,7 +30,6 @@ func TestUploadChart(t *testing.T) {
 	app := fiber.New()
 	app.Post("/chart", handler.UploadChart)
 
-	// Créer un fichier test
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("chart", "test-chart.tgz")
