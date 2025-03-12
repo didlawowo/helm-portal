@@ -1,6 +1,6 @@
 image:
   repository: fizzbuzz2/helm-portal
-  tag: 4dec4f0
+  tag: bbaa24a
   pullPolicy: "IfNotPresent"
   # pullSecrets:
   # - name: registry-credentials
