@@ -1,7 +1,7 @@
 domainName: helm-portal.fizzbuzz2.com
 image:
   repository: fizzbuzz2/helm-portal
-  tag: bbaa24a
+  tag: 3a1ba4b
   pullPolicy: "IfNotPresent"
   # pullSecrets:
   # - name: registry-credentials
@@ -18,9 +18,9 @@ serviceAccount:
   name: helm-portal
 application:
   ports:
-  - name: http
-    containerPort: 3030
-    protocol: TCP
+    - name: http
+      containerPort: 3030
+      protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -37,7 +37,6 @@ resources:
     cpu: 150m
     memory: 128Mi
 env: # - name: DD_ENV
-
 #   valueFrom:
 #     fieldRef:
 #       fieldPath: metadata.labels['tags.datadoghq.com/env']
@@ -50,17 +49,17 @@ env: # - name: DD_ENV
 #     fieldRef:
 #       fieldPath: metadata.labels['tags.datadoghq.com/version']
 volumeMounts:
-# - name: apmsocketpath
-#   mountPath: /var/run/datadog
-- name: config-volume
-  mountPath: /app/config
+  # - name: apmsocketpath
+  #   mountPath: /var/run/datadog
+  - name: config-volume
+    mountPath: /app/config
 volumes:
-# - name: apmsocketpath
-#   hostPath:
-#     path: /var/run/datadog/
-- name: config-volume
-  configMap:
-    name: config
+  # - name: apmsocketpath
+  #   hostPath:
+  #     path: /var/run/datadog/
+  - name: config-volume
+    configMap:
+      name: config
 livenessProbe:
   httpGet:
     scheme: HTTP
@@ -102,12 +101,11 @@ backup:
     #   accessKeyID: ""
     #   secretAccessKey: ""
     # Configuration d'authentification
-
 auth:
   enabled: true
   users:
-  - username: "admin"
-    password: "admin123"
+    - username: "admin"
+      password: "admin123"
 # Configuration de journalisation
 logging:
   level: "info"
