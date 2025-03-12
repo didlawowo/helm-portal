@@ -1,5 +1,47 @@
+default_install_hook_types:
+- pre-commit
+- commit-msg
+
 repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: trailing-whitespace
+    stages: [ commit ]
+  - id: end-of-file-fixer
+    exclude: /secrets
+    stages: [ commit ]
+  - id: check-added-large-files
+    stages: [ commit ]
+  - id: check-yaml
+    args:
+    - --allow-multiple-documents
+    exclude: /templates|/secrets
+    stages: [ commit ]
+  - id: check-json
+    stages: [ commit ]
+  - id: check-toml
+    stages: [ commit ]
+  - id: check-shebang-scripts-are-executable
+    stages: [ commit ]
+
+- repo: https://github.com/compilerla/conventional-pre-commit
+  rev: v4.0.0
+  hooks:
+  - id: conventional-pre-commit
+    stages: [ commit-msg ]
 - repo: https://github.com/gitleaks/gitleaks
   rev: v8.23.1
   hooks:
   - id: gitleaks
+
+# - repo: local
+#   hooks:
+#   - id: gitleaks
+#     name: Detect hardcoded secrets
+#     description: Detect hardcoded secrets using Gitleaks
+#     entry: pre-commits/scripts/run-gitleaks.sh
+#     language: script
+#     pass_filenames: false
+#     verbose: false
+#     stages: [ commit ]

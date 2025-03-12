@@ -1,97 +1,96 @@
 # Helm Portal
 
-Un registre OCI (Open Container Initiative) léger et autonome pour stocker, gérer et partager vos charts Helm.
+A lightweight and standalone OCI (Open Container Initiative) registry for storing, managing, and sharing your Helm charts.
 
 ## 📋 Description
 
-Helm Portal est une solution simple mais puissante qui vous permet d'héberger vos propres charts Helm dans un registre compatible OCI. Ce projet implémente les spécifications OCI pour permettre un stockage et une distribution efficaces des charts Helm sans dépendre de services externes.
+Helm Portal is a simple yet powerful solution that allows you to host your own Helm charts in an OCI-compatible registry. This project implements the OCI specifications to enable efficient storage and distribution of Helm charts without depending on external services.
 
-## ✨ Fonctionnalités
+## ✨ Features
 
-- 📦 Registre OCI complet pour charts Helm
-- 🔄 Gestion des versions et des tags
-- 🔒 Authentification simple et sécurisée
-- 🌐 API REST pour l'interaction programmatique
-- 📊 Interface web pour la gestion et la visualisation des charts
-- 🔍 Recherche et filtrage des charts disponibles
-- 💾 Sauvegarde sur bucket AWS / GCP
-- 🔄 Backup simple avec un bouton dédié
+- 📦 Complete OCI registry for Helm charts
+- 🔄 Version and tag management
+- 🔒 Simple and secure authentication
+- 🌐 REST API for programmatic interaction
+- 📊 Web interface for chart management and visualization
+- 🔍 Search and filtering of available charts
+- 💾 Backup to AWS / GCP buckets
+- 🔄 Simple backup with a dedicated button
 
-## 🛠️ Prérequis
+## 🛠️ Prerequisites
 
 - Kubernetes 1.18+
-- Helm 3.8.0+ (support OCI)
-- Docker (pour construire l'image si nécessaire)
+- Helm 3.8.0+ (OCI support)
+- Docker (for building the image if necessary)
 
 ## 🚀 Installation
 
-### Préparation du chart
+### Chart Preparation
 
-Avant d'installer ou d'empaqueter le chart, exécutez notre script pour copier le fichier de configuration:
+Before installing or packaging the chart, run our script to copy the configuration file:
 
 ```bash
-# Rendez le script exécutable
+# Make the script executable
 chmod +x scripts/copy-config.sh
 
-# Exécutez le script
+# Run the script
 ./scripts/copy-config.sh
 ```
 
-### Installation avec notre script (recommandé)
+### Installation with our script (recommended)
 
 ```bash
-# Rendez le script exécutable
+# Make the script executable
 chmod +x update-helm-chart.sh
 
-# Installez ou mettez à jour le chart (avec namespace par défaut)
+# Install or update the chart (with default namespace)
 ./update-helm-chart.sh
 
-# Ou spécifiez un namespace et un nom de release
-./update-helm-chart.sh mon-namespace mon-helm-portal
+# Or specify a namespace and release name
+./update-helm-chart.sh my-namespace my-helm-portal
 ```
 
-### Installation manuelle avec Helm
+### Manual installation with Helm
 
 ```bash
-# Installer le chart
+# Install the chart
 helm install helm-portal ./helm
 
-# Ou avec un namespace spécifique
-helm install helm-portal ./helm --namespace mon-namespace --create-namespace
+# Or with a specific namespace
+helm install helm-portal ./helm --namespace my-namespace --create-namespace
 ```
 
-### Utilisation du registre OCI
+### Using the OCI registry
 
 ```bash
-# Empaqueter votre chart
-helm package <votrechart>
+# Package your chart
+helm package <yourchart>
 
-# Se connecter au registre OCI
+# Login to the OCI registry
 helm registry login localhost:3030 \
   --username admin \
   --password admin123
 
-# Pousser le chart vers le registre OCI
-helm push ./votre-chart-1.0.0.tgz oci://localhost:3030
+# Push the chart to the OCI registry
+helm push ./your-chart-1.0.0.tgz oci://localhost:3030
 ```
 
 ## 📝 Configuration
 
-Le chart Helm utilise un fichier `config.yaml` pour sa configuration principale, qui est automatiquement intégré dans une ConfigMap lors de l'installation.
+The Helm chart uses a `config.yaml` file for its main configuration, which is automatically integrated into a ConfigMap during installation.
 
-### Structure de la ConfigMap
+### ConfigMap Structure
 
-Le fichier `src/config/config.yaml` est copié dans le chart Helm et utilisé comme base pour la ConfigMap. Les valeurs peuvent être remplacées par celles spécifiées dans `values.yaml`.
+The `src/config/config.yaml` file is copied into the Helm chart and used as the basis for the ConfigMap. Values can be overridden by those specified in `values.yaml`.
 
-### Principales options de configuration
+### Main configuration options
 
 ```yaml
 # values.yaml
 server:
   port: 3030
 
-storage:
-  path: "data"
+ 
 
 auth:
   enabled: true
@@ -101,53 +100,68 @@ auth:
 
 logging:
   level: "info"
-  format: "text"
+  format: "text" # or "json"
 
-# Configuration optionnelle des sauvegardes
+# Optional backup configuration
 backup:
   gcp:
     enabled: false
     bucket: "helm-portal-backup"
-    projectID: "votre-projet"
+    projectID: "your-project"
   # aws:
   #   bucket: "helm-portal-backup"
   #   region: "eu-west-1"
 ```
 
-## 🧩 Utilisation
+## 🧩 Usage
 
-### Interface Web
+### Web Interface
 
-L'interface web est accessible à l'adresse du service (par défaut `http://localhost:3030`) et permet:
-- Visualiser tous les charts disponibles
-- Télécharger des charts directement depuis l'interface
-- Consulter les détails et les valeurs de chaque chart
-- Effectuer des sauvegardes via le bouton dédié
+![alt text](assets/home.png)
 
-### API REST
+![alt text](assets/detail.png)
+The web interface is accessible at the service address (default `http://localhost:3030`) and allows:
+- View all available charts
+- Download charts directly from the interface
+- View details and values of each chart
+- Perform backups via the dedicated button
+
+### REST API
 
 ```bash
-# Lister tous les charts
+# List all charts
 curl -X GET http://localhost:3030/api/charts
 
-# Obtenir les détails d'un chart spécifique
-curl -X GET http://localhost:3030/api/charts/nom-du-chart/version
+# Get details of a specific chart
+curl -X GET http://localhost:3030/api/charts/chart-name/version
 ```
 
-### Commandes Helm
+### Deployment
 
 ```bash
-# Lister les charts disponibles dans le registre
+# Deploy the application
+helm install helm-portal ./helm
+```
+
+### Helm Commands
+
+```bash
+# List available charts in the registry
 helm search repo helm-portal
 
-# Installer un chart depuis le registre
-helm install mon-app oci://localhost:3030/nom-du-chart --version 1.0.0
+# Install a chart from the registry
+helm install my-app oci://localhost:3030/chart-name --version 1.0.0
+ 
+# connect to the registry
+helm registry login localhost:3031 \
+  --username admin \
+  --password admin123 \
 ```
 
 ## 🤝 Contribution
 
-Les contributions sont les bienvenues! N'hésitez pas à ouvrir une issue ou une pull request.
+Contributions are welcome! Feel free to open an issue or a pull request.
 
-## 📄 Licence
+## 📄 License
 
-Ce projet est sous licence MIT.
+This project is under MIT license.
