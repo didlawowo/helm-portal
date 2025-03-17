@@ -80,37 +80,66 @@
 </body>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Récupérer le contenu YAML brut
-        const yamlContent = `{{.Chart.Values}}`;
-
-        // Formater et coloriser le YAML
-        const formattedYaml = formatYaml(yamlContent);
-
-        // Injecter dans le DOM
-        document.getElementById('yaml-content').innerHTML = formattedYaml;
-    });
-
-    function formatYaml(yaml) {
-        // Échapper les caractères HTML
-        const escaped = yaml.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-        // Formatter les lignes et mettre en évidence les clés/valeurs
-        const lines = escaped.split('\n');
-        const formatted = lines.map(line => {
-            // Mettre en évidence les clés et les valeurs
-            if (line.includes(':')) {
-                const parts = line.split(':');
-                const indentation = parts[0].match(/^\s*/)[0];
-                const key = parts[0].trim();
-                const value = parts.slice(1).join(':').trim();
-
-                return `${indentation}<span class="text-yellow-300 font-bold">${key}</span>: <span class="text-blue-300">${value}</span>`;
+        // Ajouter la bibliothèque js-yaml au document
+        const jsYamlScript = document.createElement('script');
+        jsYamlScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js';
+        document.head.appendChild(jsYamlScript);
+    
+        jsYamlScript.onload = function() {
+            // Récupérer le contenu YAML brut (non échappé)
+            const yamlContent = `{{.Chart.Values}}`;
+            
+            try {
+                // Utiliser un conteneur pré-existant pour l'indentation correcte
+                const preElement = document.createElement('pre');
+                preElement.className = 'text-white';
+                
+                // Utiliser syntax highlighting
+                const formattedLines = yamlContent.split('\n').map(line => {
+                    // Échapper les caractères HTML
+                    const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    
+                    // Garder l'indentation originale
+                    const indent = line.match(/^\s*/)[0];
+                    const trimmedLine = line.trim();
+                    
+                    // Coloriser selon le type de ligne
+                    if (trimmedLine.startsWith('#')) {
+                        // Commentaire
+                        return `${indent}<span class="text-green-500">${trimmedLine}</span>`;
+                    } else if (trimmedLine.startsWith('-')) {
+                        // Élément de liste
+                        const restOfLine = trimmedLine.substring(1).trim();
+                        if (restOfLine.includes(':')) {
+                            // Liste avec clé-valeur
+                            const [key, ...valueParts] = restOfLine.split(':');
+                            const value = valueParts.join(':').trim();
+                            return `${indent}<span class="text-purple-400">-</span> <span class="text-yellow-300">${key.trim()}</span>: <span class="text-blue-300">${value}</span>`;
+                        } else {
+                            return `${indent}<span class="text-purple-400">-</span> ${restOfLine}`;
+                        }
+                    } else if (trimmedLine.includes(':')) {
+                        // Clé-valeur standard
+                        const colonIndex = trimmedLine.indexOf(':');
+                        const key = trimmedLine.substring(0, colonIndex);
+                        const value = trimmedLine.substring(colonIndex + 1).trim();
+                        return `${indent}<span class="text-yellow-300">${key}</span>: <span class="text-blue-300">${value}</span>`;
+                    } else {
+                        // Autres lignes
+                        return `${indent}${trimmedLine}`;
+                    }
+                });
+                
+                // Ajouter au conteneur
+                preElement.innerHTML = formattedLines.join('\n');
+                document.getElementById('yaml-content').innerHTML = '';
+                document.getElementById('yaml-content').appendChild(preElement);
+            } catch (e) {
+                console.error('Error parsing YAML:', e);
+                document.getElementById('yaml-content').textContent = yamlContent;
             }
-            return line;
-        });
-
-        return formatted.join('<br>');
-    }
+        };
+    });
 </script>
 
 </html>
