@@ -29,10 +29,10 @@ type IndexUpdater interface {
 
 // ChartService handles chart operations
 type ChartService struct {
-	pathManager  *utils.PathManager
-	config       *config.Config
-	log          *utils.Logger
-	baseURL      string
+	pathManager *utils.PathManager
+	config      *config.Config
+	log         *utils.Logger
+
 	indexUpdater IndexUpdater
 }
 
@@ -158,6 +158,8 @@ func (s *ChartService) ListCharts() ([]models.ChartGroup, error) {
 		}
 
 		chartMetadatas = append(chartMetadatas, *metadata)
+		// trier les charts par nom et version TODO
+
 	}
 
 	// Utiliser GroupChartsByName pour grouper les charts

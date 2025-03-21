@@ -32,15 +32,16 @@ func setupHandlers(
 	chartService interfaces.ChartServiceInterface,
 	_ interfaces.IndexServiceInterface,
 	pathManager *utils.PathManager,
+	cfg *config.Config,
 	backupService *service.BackupService,
 	log *utils.Logger,
 
 ) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler, *handlers.BackupHandler) {
 	helmHandler := handlers.NewHelmHandler(chartService, pathManager, log)
 	ociHandler := handlers.NewOCIHandler(chartService, log)
-	configHandler := handlers.NewConfigHandler(&config.Config{}, log)
+	configHandler := handlers.NewConfigHandler(cfg, log)
 	indexHandler := handlers.NewIndexHandler(chartService, pathManager, log)
-	backupHandler := handlers.NewBackupHandler(backupService, log)
+	backupHandler := handlers.NewBackupHandler(backupService, log, cfg)
 
 	return helmHandler, ociHandler, configHandler, indexHandler, backupHandler
 }
@@ -68,6 +69,9 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("Failed to load configuration")
 	}
+	if err := config.LoadAuthFromFile(cfg); err != nil {
+		log.WithError(err).Fatal("Failed to load auth configuration")
+	}
 
 	// PathManager
 	pathManager := utils.NewPathManager(cfg.Storage.Path, log)
@@ -80,6 +84,7 @@ func main() {
 		chartService,
 		indexService,
 		pathManager,
+		cfg,
 		backupService,
 		log,
 	)
@@ -133,9 +138,12 @@ func main() {
 	// Appliquer le middleware aux routes OCI qui nécessitent une authentification
 	ociGroup := app.Group("/v2")
 	ociGroup.Use(authMiddleware.Authenticate())
-
+	log.WithField("config", *cfg).Info("Configuration loaded")
+	log.WithField("backup", cfg.Backup).Info("Backup configuration")
 	// Routes Portal Interface
 	app.Get("/", helmHandler.DisplayHome)
+	app.Get("/backup/status", backupHandler.GetBackupStatus)
+
 	app.Get("/chart/:name/:version/details", helmHandler.DisplayChartDetails)
 	app.Delete("/chart/:name/:version", helmHandler.DeleteChart)
 	app.Post("/chart", helmHandler.UploadChart)

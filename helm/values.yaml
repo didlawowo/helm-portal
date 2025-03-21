@@ -5,22 +5,22 @@ image:
   pullPolicy: "IfNotPresent"
   # pullSecrets:
   # - name: registry-credentials
-autoscaling:
-  enabled: false
-replicas: 1
+
 strategy:
   type: RollingUpdate
   rollingUpdate:
     maxUnavailable: 25%
     maxSurge: 25%
+
 serviceAccount:
   create: true
   name: helm-portal
+
 application:
   ports:
-    - name: http
-      containerPort: 3030
-      protocol: TCP
+  - name: http
+    containerPort: 3030
+    protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -36,8 +36,10 @@ resources:
   requests:
     cpu: 150m
     memory: 128Mi
-env: # - name: DD_ENV
-#   valueFrom:
+env:
+  # - name: DD_ENV
+  #   valueFrom:
+
 #     fieldRef:
 #       fieldPath: metadata.labels['tags.datadoghq.com/env']
 # - name: DD_SERVICE
@@ -49,17 +51,20 @@ env: # - name: DD_ENV
 #     fieldRef:
 #       fieldPath: metadata.labels['tags.datadoghq.com/version']
 volumeMounts:
-  # - name: apmsocketpath
-  #   mountPath: /var/run/datadog
-  - name: config-volume
-    mountPath: /app/config
+# - name: apmsocketpath
+#   mountPath: /var/run/datadog
+- name: config-volume
+  mountPath: /app/config
+- name: data-volume
+  mountPath: /app/data
 volumes:
-  # - name: apmsocketpath
-  #   hostPath:
-  #     path: /var/run/datadog/
-  - name: config-volume
-    configMap:
-      name: config
+# - name: apmsocketpath
+#   hostPath:
+#     path: /var/run/datadog/
+- name: config-volume
+  configMap:
+    name: config
+
 livenessProbe:
   httpGet:
     scheme: HTTP
@@ -80,6 +85,7 @@ readinessProbe:
   timeoutSeconds: 3
   successThreshold: 1
   failureThreshold: 3
+
 ## application
 # Configuration du serveur
 server:
@@ -91,21 +97,14 @@ storage:
 backup:
   gcp:
     enabled: false
-    bucket: "helm-portal-backup-pierre"
-    projectID: "crafteo-sandbox"
-    credentialsFile: "config/dc-consulting-home-pulumi.json"
-    # Configuration AWS (commentée par défaut)
-    # aws:
-    #   bucket: "helm-portal-backup"
-    #   region: "eu-west-1"
-    #   accessKeyID: ""
-    #   secretAccessKey: ""
-    # Configuration d'authentification
-auth:
-  enabled: true
-  users:
-    - username: "admin"
-      password: "admin123"
+    bucket: "helm-portal-backup"
+    projectID: "dc-sandbox"
+    #  Configuration AWS (commentée par défaut)
+  aws:
+    enable: false
+    bucket: "helm-portal-backup"
+    region: "eu-west-1"
+
 # Configuration de journalisation
 logging:
   level: "info"
