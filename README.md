@@ -86,14 +86,12 @@ The `src/config/config.yaml` file is copied into the Helm chart and used as the 
 ### Main configuration options
 
 ```yaml
-# values.yaml
+# config.yaml
 server:
   port: 3030
-
  
-
 auth:
-  enabled: true
+ 
   users:
   - username: "admin"
     password: "admin123"
@@ -104,8 +102,9 @@ logging:
 
 # Optional backup configuration
 backup:
+  enabled: false
   gcp:
-    enabled: false
+
     bucket: "helm-portal-backup"
     projectID: "your-project"
   # aws:
@@ -121,6 +120,7 @@ backup:
 
 ![alt text](assets/detail.png)
 The web interface is accessible at the service address (default `http://localhost:3030`) and allows:
+
 - View all available charts
 - Download charts directly from the interface
 - View details and values of each chart

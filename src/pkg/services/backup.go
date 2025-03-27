@@ -3,34 +3,34 @@ package service
 import (
 	"context"
 	"fmt"
-	"helm-portal/config"
+	cfg "helm-portal/config"
 	"helm-portal/pkg/utils"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
-	"cloud.google.com/go/storage"
 	gcs "cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 )
 
 type BackupService struct {
 	pathManager *utils.PathManager
-	config      *config.Config
+	config      *cfg.Config
 	log         *utils.Logger
 	awsSession  *session.Session
 	s3Client    *s3.S3
 	gcsClient   *gcs.Client
 }
 
-func NewBackupService(config *config.Config, log *utils.Logger) (*BackupService, error) {
+func NewBackupService(config *cfg.Config, log *utils.Logger) (*BackupService, error) {
 	if config == nil {
 		return nil, fmt.Errorf("❌ invalid configuration: config is nil")
 	}
@@ -45,34 +45,45 @@ func NewBackupService(config *config.Config, log *utils.Logger) (*BackupService,
 		log:         log,
 	}
 
-	// Initialisation du client cloud
-	if config.Backup.AWS.Bucket != "" {
-		if err := srv.initAWSClient(); err != nil {
-			return nil, fmt.Errorf("❌ failed to initialize AWS client: %w", err)
+	secrets := cfg.LoadSecrets()
+	if config.Backup.Enabled {
+		logrus.Info("Backup is enabled")
+		// Initialisation du client cloud
+		if config.Backup.AWS.Bucket != "" {
+
+			if err := srv.initAWSClient(secrets.AWSAccessKeyID, secrets.AWSSecretAccessKey); err != nil {
+				return nil, fmt.Errorf("❌ failed to initialize AWS client: %w", err)
+			}
+		} else if config.Backup.GCP.Bucket != "" {
+			// Vous devez passer le chemin du fichier de credentials ici
+			if err := srv.initGCPClient(secrets.GCPCredentialsFile); err != nil {
+				return nil, fmt.Errorf("❌ failed to initialize GCP client: %w", err)
+			}
+		} else {
+			// No backup provider configured
+			logrus.Info("No backup provider configured")
+			return nil, nil
 		}
-	} else if config.Backup.GCP.Bucket != "" {
-		if err := srv.initGCPClient(); err != nil {
-			return nil, fmt.Errorf("❌ failed to initialize GCP client: %w", err)
-		}
+
 	} else {
-		// No backup provider configured
-		logrus.Info("No backup provider configured")
+		logrus.Info("Backup is disabled")
 		return nil, nil
-
 	}
-
 	return srv, nil
 }
 
-func (s *BackupService) initAWSClient() error {
+func (s *BackupService) initAWSClient(accessKey, secretKey string) error {
 	s.log.WithFunc().WithFields(logrus.Fields{
 		"region": s.config.Backup.AWS.Region,
 		"bucket": s.config.Backup.AWS.Bucket,
 	}).Debug("Initializing AWS client")
 
+	if accessKey == "" || secretKey == "" {
+		return fmt.Errorf("AWS credentials not provided")
+	}
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(s.config.Backup.AWS.Region),
-		Credentials: credentials.NewStaticCredentials(s.config.Backup.AWS.AccessKeyID, s.config.Backup.AWS.SecretAccessKey, ""),
+		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create AWS session: %w", err)
@@ -83,7 +94,7 @@ func (s *BackupService) initAWSClient() error {
 	return nil
 }
 
-func (s *BackupService) initGCPClient() error {
+func (s *BackupService) initGCPClient(credentialsFile string) error {
 	// Ajout de timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -97,13 +108,17 @@ func (s *BackupService) initGCPClient() error {
 	}
 
 	// Vérification du fichier de credentials
-	if _, err := os.Stat(s.config.Backup.GCP.CredentialsFile); err != nil {
-		s.log.WithFunc().WithError(err).WithField("credentialsPath", s.config.Backup.GCP.CredentialsFile).Error("Credentials file check failed")
+	if credentialsFile == "" {
+		return fmt.Errorf("GCP credentials file path not provided")
+	}
+
+	if _, err := os.Stat(credentialsFile); err != nil {
+		s.log.WithFunc().WithError(err).WithField("credentialsPath", credentialsFile).Error("Credentials file check failed")
 		return fmt.Errorf("credentials file not found: %w", err)
 	}
 
 	// Création du client
-	client, err := gcs.NewClient(ctx, option.WithCredentialsFile(s.config.Backup.GCP.CredentialsFile))
+	client, err := gcs.NewClient(ctx, option.WithCredentialsFile(credentialsFile))
 	if err != nil {
 		return fmt.Errorf("failed to create GCP client: %w", err)
 	}
@@ -115,11 +130,10 @@ func (s *BackupService) initGCPClient() error {
 		}
 	}()
 
-	// Vérification du bucket
 	bucket := client.Bucket(s.config.Backup.GCP.Bucket)
 	attrs, err := bucket.Attrs(ctx)
 	if err != nil {
-		if err == storage.ErrBucketNotExist {
+		if err == gcs.ErrBucketNotExist {
 			s.log.WithFunc().WithField("bucket", s.config.Backup.GCP.Bucket).Error("Bucket does not exist")
 			return fmt.Errorf("bucket %s does not exist in project %s", s.config.Backup.GCP.Bucket, s.config.Backup.GCP.ProjectID)
 		}
@@ -153,9 +167,9 @@ func (s *BackupService) Backup() error {
 
 	s.log.WithFunc().WithField("path", sourcePath).Debug("Starting backup from source path")
 
-	if s.awsSession != nil {
+	if s.config.Backup.Provider == "aws" && s.awsSession != nil {
 		return s.backupToAWS(sourcePath)
-	} else if s.gcsClient != nil {
+	} else if s.config.Backup.Provider == "gcp" && s.gcsClient != nil {
 		return s.backupToGCP(sourcePath)
 	}
 	return fmt.Errorf("no backup provider configured")

@@ -7,7 +7,7 @@ metadata:
     app: {{ $.Release.Name | quote }}
 
 spec:
-  ingressClassName: traefik
+  ingressClassName: {{ $.Values.ingressClassName }}
   rules:
   - host: {{ $.Values.domainName }}
     http:

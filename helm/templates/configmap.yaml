@@ -8,27 +8,9 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 data:
-  {{- if .Values.backup.gcp.enabled }}
-  creds-gcp.json: |-
-    {
-      "type": "service_account",
-      "project_id": "{{ .Values.backup.gcp.projectID }}",
-      "private_key_id": "{{ .Values.backup.gcp.privateKeyID | default "xxx" }}",
-      "private_key": "{{ .Values.backup.gcp.privateKey | default "xxx" }}",
-      "client_email": "{{ .Values.backup.gcp.clientEmail | default "xxx" }}",
-      "client_id": "{{ .Values.backup.gcp.clientID | default "xxx" }}",
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-      "token_uri": "https://oauth2.googleapis.com/token",
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-      "client_x509_cert_url": "{{ .Values.backup.gcp.clientX509CertURL | default "xxx" }}",
-      "universe_domain": "googleapis.com"
-    }
-  {{- end }}
-
-  # Utilisation du fichier de configuration source via .Files.Get
   config.yaml: |-
 {{- /* Charger le contenu du fichier depuis le répertoire racine du chart */ -}}
 {{- /* Utiliser merge pour combiner le fichier statique et les valeurs dynamiques */ -}}
 {{- $config := tpl (.Files.Get "config.yaml") . | fromYaml -}}
-{{- $mergedConfig := mustMergeOverwrite $config (fromYaml (tpl (toYaml .Values.application) .)) -}}
+{{- $mergedConfig := mustMergeOverwrite $config (fromYaml (tpl (toYaml .Values.config) .)) -}}
 {{- toYaml $mergedConfig | nindent 4 }}

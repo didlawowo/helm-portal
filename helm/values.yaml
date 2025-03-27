@@ -1,26 +1,97 @@
 domainName: helm-portal.fizzbuzz2.com
 image:
   repository: fizzbuzz2/helm-portal
-  tag: fc2f887
-  pullPolicy: "IfNotPresent"
+  tag: latest
+  pullPolicy: "Always"
   # pullSecrets:
   # - name: registry-credentials
-autoscaling:
-  enabled: false
-replicas: 1
+
 strategy:
   type: RollingUpdate
   rollingUpdate:
     maxUnavailable: 25%
     maxSurge: 25%
+replicas: 1
+
 serviceAccount:
   create: true
   name: helm-portal
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+secrets:
+  dotenv:
+  - name: backup
+    path: values/dev/secrets/secrets.env
+  files:
+  - name: auth
+    path: values/dev/secrets/auth.yaml
+
+volumeMounts:
+- name: config-volume
+  mountPath: /app/config/config.yaml
+  subPath: config.yaml
+  readOnly: true
+- name: data-volume
+  mountPath: /app/data
+- name: auth-volume
+  mountPath: /app/config/auth.yaml
+  subPath: auth.yaml
+  readOnly: true
+
+volumes:
+- name: config-volume
+  configMap:
+    name: config
+- name: auth-volume
+  secret:
+    secretName: auth
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: data
+
+livenessProbe:
+  httpGet:
+    scheme: HTTP
+    path: /health
+    port: 3030
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    scheme: HTTP
+    path: /health
+    port: 3030
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+persistentVolumesClaims:
+- name: data
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard # Vous n'avez pas spécifié la storageClassName dans votre exemple
+  size: 1Gi
+
 application:
   ports:
-    - name: http
-      containerPort: 3030
-      protocol: TCP
+  - name: http
+    containerPort: 3030
+    protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -36,77 +107,34 @@ resources:
   requests:
     cpu: 150m
     memory: 128Mi
-env: # - name: DD_ENV
-#   valueFrom:
-#     fieldRef:
-#       fieldPath: metadata.labels['tags.datadoghq.com/env']
-# - name: DD_SERVICE
-#   valueFrom:
-#     fieldRef:
-#       fieldPath: metadata.labels['tags.datadoghq.com/service']
-# - name: DD_VERSION
-#   valueFrom:
-#     fieldRef:
-#       fieldPath: metadata.labels['tags.datadoghq.com/version']
-volumeMounts:
-  # - name: apmsocketpath
-  #   mountPath: /var/run/datadog
-  - name: config-volume
-    mountPath: /app/config
-volumes:
-  # - name: apmsocketpath
-  #   hostPath:
-  #     path: /var/run/datadog/
-  - name: config-volume
-    configMap:
-      name: config
-livenessProbe:
-  httpGet:
-    scheme: HTTP
-    path: /health
+
+ingressClassName: traefik
+
+env:
+- name: ENV
+  value: production
+
+envFrom:
+- secretRef:
+    name: backup
+
+config:
+  server:
     port: 3030
-  initialDelaySeconds: 5
-  periodSeconds: 30
-  timeoutSeconds: 1
-  successThreshold: 1
-  failureThreshold: 3
-readinessProbe:
-  httpGet:
-    scheme: HTTP
-    path: /health
-    port: 3030
-  initialDelaySeconds: 5
-  periodSeconds: 30
-  timeoutSeconds: 3
-  successThreshold: 1
-  failureThreshold: 3
-## application
-# Configuration du serveur
-server:
-  port: 3030
-# Configuration du stockage
-storage:
-  path: "data"
-  # Configuration des sauvegardes (commentée par défaut)
-backup:
-  gcp:
+
+  storage:
+    path: "data"
+
+  backup:
     enabled: false
-    bucket: "helm-portal-backup-pierre"
-    projectID: "crafteo-sandbox"
-    credentialsFile: "config/dc-consulting-home-pulumi.json"
-    # Configuration AWS (commentée par défaut)
+    provider: "gcp" # "aws" ou "gcp"
+    gcp:
+      bucket: "helm-portal-backup"
+      projectID: "dc-consulting-home"
     # aws:
     #   bucket: "helm-portal-backup"
     #   region: "eu-west-1"
-    #   accessKeyID: ""
-    #   secretAccessKey: ""
-    # Configuration d'authentification
-auth:
-  enabled: true
-  users:
-    - username: "admin"
-      password: "admin123"
-# Configuration de journalisation
-logging:
-  level: "info"
-  format: "text"
+
+  logging:
+    level: "info"
+    format: "text"

@@ -25,3 +25,5 @@ src/tmp
 letsencrypt
 src/config/dc-consulting-home-pulumi.json
 src/config/gcp-creds.json
+**/secrets/*
+helm/rendered.yaml

@@ -25,10 +25,6 @@ func NewAuthMiddleware(config *config.Config, log *utils.Logger) *AuthMiddleware
 
 func (m *AuthMiddleware) Authenticate() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Si l'authentification est désactivée
-		if !m.config.Auth.Enabled {
-			return c.Next()
-		}
 
 		// Récupérer le header d'authentification
 		auth := c.Get("Authorization")
