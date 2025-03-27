@@ -1,60 +1,53 @@
 domainName: helm-portal.fizzbuzz2.com
 image:
   repository: fizzbuzz2/helm-portal
-  tag: latest
+  tag: 3d41b17
   pullPolicy: "Always"
   # pullSecrets:
   # - name: registry-credentials
-
 strategy:
   type: RollingUpdate
   rollingUpdate:
     maxUnavailable: 25%
     maxSurge: 25%
 replicas: 1
-
 serviceAccount:
   create: true
   name: helm-portal
-
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
-
 secrets:
   dotenv:
-  - name: backup
-    path: values/dev/secrets/secrets.env
+    - name: backup
+      path: values/dev/secrets/secrets.env
   files:
-  - name: auth
-    path: values/dev/secrets/auth.yaml
-
+    - name: auth
+      path: values/dev/secrets/auth.yaml
 volumeMounts:
-- name: config-volume
-  mountPath: /app/config/config.yaml
-  subPath: config.yaml
-  readOnly: true
-- name: data-volume
-  mountPath: /app/data
-- name: auth-volume
-  mountPath: /app/config/auth.yaml
-  subPath: auth.yaml
-  readOnly: true
-
+  - name: config-volume
+    mountPath: /app/config/config.yaml
+    subPath: config.yaml
+    readOnly: true
+  - name: data-volume
+    mountPath: /app/data
+  - name: auth-volume
+    mountPath: /app/config/auth.yaml
+    subPath: auth.yaml
+    readOnly: true
 volumes:
-- name: config-volume
-  configMap:
-    name: config
-- name: auth-volume
-  secret:
-    secretName: auth
-- name: data-volume
-  persistentVolumeClaim:
-    claimName: data
-
+  - name: config-volume
+    configMap:
+      name: config
+  - name: auth-volume
+    secret:
+      secretName: auth
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: data
 livenessProbe:
   httpGet:
     scheme: HTTP
@@ -65,7 +58,6 @@ livenessProbe:
   timeoutSeconds: 1
   successThreshold: 1
   failureThreshold: 3
-
 readinessProbe:
   httpGet:
     scheme: HTTP
@@ -76,22 +68,19 @@ readinessProbe:
   timeoutSeconds: 3
   successThreshold: 1
   failureThreshold: 3
-
 nodeSelector:
   kubernetes.io/os: linux
-
 persistentVolumesClaims:
-- name: data
-  accessModes:
-  - ReadWriteOnce
-  storageClassName: standard # Vous n'avez pas spécifié la storageClassName dans votre exemple
-  size: 1Gi
-
+  - name: data
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: standard # Vous n'avez pas spécifié la storageClassName dans votre exemple
+    size: 1Gi
 application:
   ports:
-  - name: http
-    containerPort: 3030
-    protocol: TCP
+    - name: http
+      containerPort: 3030
+      protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -107,34 +96,27 @@ resources:
   requests:
     cpu: 150m
     memory: 128Mi
-
 ingressClassName: traefik
-
 env:
-- name: ENV
-  value: production
-
+  - name: ENV
+    value: production
 envFrom:
-- secretRef:
-    name: backup
-
+  - secretRef:
+      name: backup
 config:
   server:
     port: 3030
-
   storage:
     path: "data"
-
   backup:
     enabled: false
     provider: "gcp" # "aws" ou "gcp"
     gcp:
       bucket: "helm-portal-backup"
       projectID: "dc-consulting-home"
-    # aws:
-    #   bucket: "helm-portal-backup"
-    #   region: "eu-west-1"
-
+      # aws:
+      #   bucket: "helm-portal-backup"
+      #   region: "eu-west-1"
   logging:
     level: "info"
     format: "text"
