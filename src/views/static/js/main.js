@@ -276,12 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     
-    // Test de la modale - pour le debugging
-    console.log('Testing modal visibility...');
-    setTimeout(() => {
-        showModal("Test de la modale - ceci est un message de test", false);
-    }, 1000);
-    
+ 
     // Initialiser le cache des versions
     window.chartVersions = {};
     
