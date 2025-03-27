@@ -138,7 +138,7 @@ func main() {
 	// Appliquer le middleware aux routes OCI qui nécessitent une authentification
 	ociGroup := app.Group("/v2")
 	ociGroup.Use(authMiddleware.Authenticate())
-	log.WithField("config", *cfg).Info("Configuration loaded")
+	// log.WithField("config", *cfg).Info("Configuration loaded")
 	log.WithField("backup", cfg.Backup).Info("Backup configuration")
 	// Routes Portal Interface
 	app.Get("/", helmHandler.DisplayHome)

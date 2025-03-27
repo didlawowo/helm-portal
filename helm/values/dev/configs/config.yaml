@@ -5,7 +5,7 @@ storage:
   path: "data"
 
 backup:
-  enabled: false
+  enabled: true
   provider: "gcp" # "aws" ou "gcp"
   gcp:
     bucket: "helm-portal-backup"

@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 )
@@ -45,24 +46,29 @@ func NewBackupService(config *cfg.Config, log *utils.Logger) (*BackupService, er
 	}
 
 	secrets := cfg.LoadSecrets()
+	if config.Backup.Enabled {
+		logrus.Info("Backup is enabled")
+		// Initialisation du client cloud
+		if config.Backup.AWS.Bucket != "" {
 
-	// Initialisation du client cloud
-	if config.Backup.AWS.Bucket != "" {
+			if err := srv.initAWSClient(secrets.AWSAccessKeyID, secrets.AWSSecretAccessKey); err != nil {
+				return nil, fmt.Errorf("❌ failed to initialize AWS client: %w", err)
+			}
+		} else if config.Backup.GCP.Bucket != "" {
+			// Vous devez passer le chemin du fichier de credentials ici
+			if err := srv.initGCPClient(secrets.GCPCredentialsFile); err != nil {
+				return nil, fmt.Errorf("❌ failed to initialize GCP client: %w", err)
+			}
+		} else {
+			// No backup provider configured
+			logrus.Info("No backup provider configured")
+			return nil, nil
+		}
 
-		if err := srv.initAWSClient(secrets.AWSAccessKeyID, secrets.AWSSecretAccessKey); err != nil {
-			return nil, fmt.Errorf("❌ failed to initialize AWS client: %w", err)
-		}
-	} else if config.Backup.GCP.Bucket != "" {
-		// Vous devez passer le chemin du fichier de credentials ici
-		if err := srv.initGCPClient(secrets.GCPCredentialsFile); err != nil {
-			return nil, fmt.Errorf("❌ failed to initialize GCP client: %w", err)
-		}
 	} else {
-		// No backup provider configured
-		logrus.Info("No backup provider configured")
+		logrus.Info("Backup is disabled")
 		return nil, nil
 	}
-
 	return srv, nil
 }
 

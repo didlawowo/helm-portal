@@ -86,14 +86,12 @@ The `src/config/config.yaml` file is copied into the Helm chart and used as the 
 ### Main configuration options
 
 ```yaml
-# values.yaml
+# config.yaml
 server:
   port: 3030
-
  
-
 auth:
-  enabled: true
+ 
   users:
   - username: "admin"
     password: "admin123"

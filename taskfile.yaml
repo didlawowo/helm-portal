@@ -23,11 +23,15 @@ tasks:
     cmds:
     - docker compose down
 
-  test-handlers:
-    desc: Test handlers
-    dir: src/pkg-handlers
+  template:
+    desc: Template the helmchart
     cmds:
-    - go test -v .
+    - helm template helm/ -f helm/values/dev/values.yaml > helm/rendered.yaml
+
+  deploy:
+    desc: Deploy the helmchart
+    cmds:
+    - bash update-helm-chart.sh portal
 
   test-upload-chart:
     desc: Test upload chart

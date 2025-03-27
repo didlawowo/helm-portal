@@ -1,49 +1,676 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "array",
-    "items": {
-        "$ref": "#/definitions/Welcome4Element"
-    },
+    "$ref": "#/definitions/Welcome3",
     "definitions": {
-        "Welcome4Element": {
+        "Welcome3": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "authorize": {
+                "domainName": {
+                    "type": "string"
+                },
+                "image": {
+                    "$ref": "#/definitions/Image"
+                },
+                "strategy": {
+                    "$ref": "#/definitions/Strategy"
+                },
+                "replicas": {
+                    "type": "integer"
+                },
+                "serviceAccount": {
+                    "$ref": "#/definitions/ServiceAccount"
+                },
+                "autoscaling": {
+                    "$ref": "#/definitions/Autoscaling"
+                },
+                "secrets": {
+                    "$ref": "#/definitions/Secrets"
+                },
+                "volumeMounts": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Authorize"
+                        "$ref": "#/definitions/VolumeMount"
                     }
                 },
-                "deny": {
+                "volumes": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/Volume"
                     }
+                },
+                "livenessProbe": {
+                    "$ref": "#/definitions/NessProbe"
+                },
+                "readinessProbe": {
+                    "$ref": "#/definitions/NessProbe"
+                },
+                "nodeSelector": {
+                    "$ref": "#/definitions/NodeSelector"
+                },
+                "persistentVolumesClaims": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PersistentVolumesClaim"
+                    }
+                },
+                "application": {
+                    "$ref": "#/definitions/Application"
+                },
+                "service": {
+                    "$ref": "#/definitions/Service"
+                },
+                "resources": {
+                    "$ref": "#/definitions/Resources"
+                },
+                "ingressClassName": {
+                    "type": "string"
+                },
+                "env": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Env"
+                    }
+                },
+                "envFrom": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/EnvFrom"
+                    }
+                },
+                "config": {
+                    "$ref": "#/definitions/Config"
                 }
             },
-            "required": [],
-            "title": "Welcome4Element"
+            "required": [
+                "application",
+                "autoscaling",
+                "config",
+                "domainName",
+                "env",
+                "envFrom",
+                "image",
+                "ingressClassName",
+                "livenessProbe",
+                "nodeSelector",
+                "persistentVolumesClaims",
+                "readinessProbe",
+                "replicas",
+                "resources",
+                "secrets",
+                "service",
+                "serviceAccount",
+                "strategy",
+                "volumeMounts",
+                "volumes"
+            ],
+            "title": "Welcome3"
         },
-        "Authorize": {
+        "Application": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "test-api": {
+                "ports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Port"
+                    }
+                },
+                "containerName": {
+                    "type": "string"
+                },
+                "command": {
+                    "type": "array",
+                    "items": {}
+                },
+                "args": {
+                    "type": "array",
+                    "items": {}
+                }
+            },
+            "required": [
+                "args",
+                "command",
+                "containerName",
+                "ports"
+            ],
+            "title": "Application"
+        },
+        "Port": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "containerPort": {
+                    "type": "integer"
+                },
+                "protocol": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "containerPort",
+                "name",
+                "protocol"
+            ],
+            "title": "Port"
+        },
+        "Autoscaling": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "minReplicas": {
+                    "type": "integer"
+                },
+                "maxReplicas": {
+                    "type": "integer"
+                },
+                "targetCPUUtilizationPercentage": {
+                    "type": "integer"
+                },
+                "targetMemoryUtilizationPercentage": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "enabled",
+                "maxReplicas",
+                "minReplicas",
+                "targetCPUUtilizationPercentage",
+                "targetMemoryUtilizationPercentage"
+            ],
+            "title": "Autoscaling"
+        },
+        "Config": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "server": {
+                    "$ref": "#/definitions/Server"
+                },
+                "storage": {
+                    "$ref": "#/definitions/Storage"
+                },
+                "backup": {
+                    "$ref": "#/definitions/Backup"
+                },
+                "logging": {
+                    "$ref": "#/definitions/Logging"
+                }
+            },
+            "required": [
+                "backup",
+                "logging",
+                "server",
+                "storage"
+            ],
+            "title": "Config"
+        },
+        "Backup": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "gcp": {
+                    "$ref": "#/definitions/Gcp"
+                }
+            },
+            "required": [
+                "enabled",
+                "gcp",
+                "provider"
+            ],
+            "title": "Backup"
+        },
+        "Gcp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "bucket": {
+                    "type": "string"
+                },
+                "projectID": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "bucket",
+                "projectID"
+            ],
+            "title": "Gcp"
+        },
+        "Logging": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "level": {
+                    "type": "string"
+                },
+                "format": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "format",
+                "level"
+            ],
+            "title": "Logging"
+        },
+        "Server": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "port": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "port"
+            ],
+            "title": "Server"
+        },
+        "Storage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "path": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "path"
+            ],
+            "title": "Storage"
+        },
+        "Env": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "value"
+            ],
+            "title": "Env"
+        },
+        "EnvFrom": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "secretRef": {
+                    "$ref": "#/definitions/SecretRef"
+                }
+            },
+            "required": [
+                "secretRef"
+            ],
+            "title": "EnvFrom"
+        },
+        "SecretRef": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "title": "SecretRef"
+        },
+        "Image": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "repository": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "pullPolicy": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "pullPolicy",
+                "repository",
+                "tag"
+            ],
+            "title": "Image"
+        },
+        "NessProbe": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "httpGet": {
+                    "$ref": "#/definitions/HTTPGet"
+                },
+                "initialDelaySeconds": {
+                    "type": "integer"
+                },
+                "periodSeconds": {
+                    "type": "integer"
+                },
+                "timeoutSeconds": {
+                    "type": "integer"
+                },
+                "successThreshold": {
+                    "type": "integer"
+                },
+                "failureThreshold": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "failureThreshold",
+                "httpGet",
+                "initialDelaySeconds",
+                "periodSeconds",
+                "successThreshold",
+                "timeoutSeconds"
+            ],
+            "title": "NessProbe"
+        },
+        "HTTPGet": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "scheme": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "path",
+                "port",
+                "scheme"
+            ],
+            "title": "HTTPGet"
+        },
+        "NodeSelector": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "kubernetes.io/os": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "kubernetes.io/os"
+            ],
+            "title": "NodeSelector"
+        },
+        "PersistentVolumesClaim": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "accessModes": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "auth": {
+                "storageClassName": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "accessModes",
+                "name",
+                "size",
+                "storageClassName"
+            ],
+            "title": "PersistentVolumesClaim"
+        },
+        "Resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "limits": {
+                    "$ref": "#/definitions/Limits"
+                },
+                "requests": {
+                    "$ref": "#/definitions/Limits"
+                }
+            },
+            "required": [
+                "limits",
+                "requests"
+            ],
+            "title": "Resources"
+        },
+        "Limits": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "cpu": {
+                    "type": "string"
+                },
+                "memory": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "cpu",
+                "memory"
+            ],
+            "title": "Limits"
+        },
+        "Secrets": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "dotenv": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/Dotenv"
+                    }
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Dotenv"
                     }
                 }
             },
-            "required": [],
-            "title": "Authorize"
+            "required": [
+                "dotenv",
+                "files"
+            ],
+            "title": "Secrets"
+        },
+        "Dotenv": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "path"
+            ],
+            "title": "Dotenv"
+        },
+        "Service": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "port": {
+                    "type": "integer"
+                },
+                "targetPort": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "portName": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "port",
+                "portName",
+                "targetPort",
+                "type"
+            ],
+            "title": "Service"
+        },
+        "ServiceAccount": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "create",
+                "name"
+            ],
+            "title": "ServiceAccount"
+        },
+        "Strategy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "rollingUpdate": {
+                    "$ref": "#/definitions/RollingUpdate"
+                }
+            },
+            "required": [
+                "rollingUpdate",
+                "type"
+            ],
+            "title": "Strategy"
+        },
+        "RollingUpdate": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "maxUnavailable": {
+                    "type": "string"
+                },
+                "maxSurge": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "maxSurge",
+                "maxUnavailable"
+            ],
+            "title": "RollingUpdate"
+        },
+        "VolumeMount": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "subPath": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "mountPath",
+                "name"
+            ],
+            "title": "VolumeMount"
+        },
+        "Volume": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "configMap": {
+                    "$ref": "#/definitions/SecretRef"
+                },
+                "secret": {
+                    "$ref": "#/definitions/Secret"
+                },
+                "persistentVolumeClaim": {
+                    "$ref": "#/definitions/PersistentVolumeClaim"
+                }
+            },
+            "required": [
+                "name"
+            ],
+            "title": "Volume"
+        },
+        "PersistentVolumeClaim": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "claimName": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "claimName"
+            ],
+            "title": "PersistentVolumeClaim"
+        },
+        "Secret": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "secretName": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "secretName"
+            ],
+            "title": "Secret"
         }
     }
 }

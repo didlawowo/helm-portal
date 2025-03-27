@@ -33,7 +33,8 @@ WORKDIR /app
 # Copier l'exécutable depuis le builder
 COPY --from=builder /app/helm-portal .
 COPY --from=builder /app/views ./views
-
+RUN mkdir config
+COPY --from=builder /app/config/config.yaml ./config/config.yaml
 
 RUN chown -R app:app /app
 

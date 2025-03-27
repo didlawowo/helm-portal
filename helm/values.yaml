@@ -1,8 +1,8 @@
 domainName: helm-portal.fizzbuzz2.com
 image:
   repository: fizzbuzz2/helm-portal
-  tag: fc2f887
-  pullPolicy: "IfNotPresent"
+  tag: latest
+  pullPolicy: "Always"
   # pullSecrets:
   # - name: registry-credentials
 
@@ -11,10 +11,81 @@ strategy:
   rollingUpdate:
     maxUnavailable: 25%
     maxSurge: 25%
+replicas: 1
 
 serviceAccount:
   create: true
   name: helm-portal
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+secrets:
+  dotenv:
+  - name: backup
+    path: values/dev/secrets/secrets.env
+  files:
+  - name: auth
+    path: values/dev/secrets/auth.yaml
+
+volumeMounts:
+- name: config-volume
+  mountPath: /app/config/config.yaml
+  subPath: config.yaml
+  readOnly: true
+- name: data-volume
+  mountPath: /app/data
+- name: auth-volume
+  mountPath: /app/config/auth.yaml
+  subPath: auth.yaml
+  readOnly: true
+
+volumes:
+- name: config-volume
+  configMap:
+    name: config
+- name: auth-volume
+  secret:
+    secretName: auth
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: data
+
+livenessProbe:
+  httpGet:
+    scheme: HTTP
+    path: /health
+    port: 3030
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    scheme: HTTP
+    path: /health
+    port: 3030
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+persistentVolumesClaims:
+- name: data
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard # Vous n'avez pas spécifié la storageClassName dans votre exemple
+  size: 1Gi
 
 application:
   ports:
@@ -36,76 +107,34 @@ resources:
   requests:
     cpu: 150m
     memory: 128Mi
+
+ingressClassName: traefik
+
 env:
-  # - name: DD_ENV
-  #   valueFrom:
+- name: ENV
+  value: production
 
-#     fieldRef:
-#       fieldPath: metadata.labels['tags.datadoghq.com/env']
-# - name: DD_SERVICE
-#   valueFrom:
-#     fieldRef:
-#       fieldPath: metadata.labels['tags.datadoghq.com/service']
-# - name: DD_VERSION
-#   valueFrom:
-#     fieldRef:
-#       fieldPath: metadata.labels['tags.datadoghq.com/version']
-volumeMounts:
-# - name: apmsocketpath
-#   mountPath: /var/run/datadog
-- name: config-volume
-  mountPath: /app/config
-- name: data-volume
-  mountPath: /app/data
-volumes:
-# - name: apmsocketpath
-#   hostPath:
-#     path: /var/run/datadog/
-- name: config-volume
-  configMap:
-    name: config
+envFrom:
+- secretRef:
+    name: backup
 
-livenessProbe:
-  httpGet:
-    scheme: HTTP
-    path: /health
+config:
+  server:
     port: 3030
-  initialDelaySeconds: 5
-  periodSeconds: 30
-  timeoutSeconds: 1
-  successThreshold: 1
-  failureThreshold: 3
-readinessProbe:
-  httpGet:
-    scheme: HTTP
-    path: /health
-    port: 3030
-  initialDelaySeconds: 5
-  periodSeconds: 30
-  timeoutSeconds: 3
-  successThreshold: 1
-  failureThreshold: 3
 
-## application
-# Configuration du serveur
-server:
-  port: 3030
-# Configuration du stockage
-storage:
-  path: "data"
-  # Configuration des sauvegardes (commentée par défaut)
-backup:
-  gcp:
+  storage:
+    path: "data"
+
+  backup:
     enabled: false
-    bucket: "helm-portal-backup"
-    projectID: "dc-sandbox"
-    #  Configuration AWS (commentée par défaut)
-  aws:
-    enable: false
-    bucket: "helm-portal-backup"
-    region: "eu-west-1"
+    provider: "gcp" # "aws" ou "gcp"
+    gcp:
+      bucket: "helm-portal-backup"
+      projectID: "dc-consulting-home"
+    # aws:
+    #   bucket: "helm-portal-backup"
+    #   region: "eu-west-1"
 
-# Configuration de journalisation
-logging:
-  level: "info"
-  format: "text"
+  logging:
+    level: "info"
+    format: "text"

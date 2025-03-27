@@ -8,10 +8,9 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 data:
-
   config.yaml: |-
 {{- /* Charger le contenu du fichier depuis le répertoire racine du chart */ -}}
 {{- /* Utiliser merge pour combiner le fichier statique et les valeurs dynamiques */ -}}
 {{- $config := tpl (.Files.Get "config.yaml") . | fromYaml -}}
-{{- $mergedConfig := mustMergeOverwrite $config (fromYaml (tpl (toYaml .Values.application) .)) -}}
+{{- $mergedConfig := mustMergeOverwrite $config (fromYaml (tpl (toYaml .Values.config) .)) -}}
 {{- toYaml $mergedConfig | nindent 4 }}
