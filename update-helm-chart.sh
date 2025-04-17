@@ -8,7 +8,7 @@ echo "📝 Copie du fichier config.yaml..."
 cp src/config/config.yaml helm/
 
 # Variables
-NAMESPACE="${1:-default}"
+NAMESPACE="${1:-kube-infra}"
 RELEASE_NAME="${2:-helm-portal}"
 
 # Installation/Mise à jour du chart

@@ -31,7 +31,7 @@ tasks:
   deploy:
     desc: Deploy the helmchart
     cmds:
-    - bash update-helm-chart.sh portal
+    - bash update-helm-chart.sh kube-infra
 
   test-upload-chart:
     desc: Test upload chart

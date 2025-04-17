@@ -44,7 +44,7 @@ volumes:
       name: config
   - name: auth-volume
     secret:
-      secretName: auth
+      secretName: helm-portal-auth
   - name: data-volume
     persistentVolumeClaim:
       claimName: data
@@ -68,13 +68,12 @@ readinessProbe:
   timeoutSeconds: 3
   successThreshold: 1
   failureThreshold: 3
-nodeSelector:
-  kubernetes.io/os: linux
+
 persistentVolumesClaims:
   - name: data
     accessModes:
       - ReadWriteOnce
-    storageClassName: standard # Vous n'avez pas spécifié la storageClassName dans votre exemple
+    storageClassName: standard  
     size: 1Gi
 application:
   ports:
@@ -110,10 +109,10 @@ config:
     path: "data"
   backup:
     enabled: false
-    provider: "gcp" # "aws" ou "gcp"
-    gcp:
-      bucket: "helm-portal-backup"
-      projectID: "dc-consulting-home"
+    # provider: "gcp" # "aws" ou "gcp"
+    # gcp:
+    #   bucket: "helm-portal-backup"
+    #   projectID: "dc-consulting-home"
       # aws:
       #   bucket: "helm-portal-backup"
       #   region: "eu-west-1"

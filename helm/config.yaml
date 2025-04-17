@@ -1,0 +1,19 @@
+server:
+  port: 3030
+
+storage:
+  path: "data"
+
+backup:
+  enabled: false
+  provider: "gcp" # "aws" ou "gcp"
+  gcp:
+    bucket: "helm-portal-backup"
+    projectID: "dc-consulting-home"
+  # aws:
+  #   bucket: "helm-portal-backup"
+  #   region: "eu-west-1"
+
+logging:
+  level: "info"
+  format: "text"
