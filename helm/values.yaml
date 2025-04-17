@@ -1,7 +1,7 @@
 domainName: helm-portal.fizzbuzz2.com
 image:
   repository: fizzbuzz2/helm-portal
-  tag: "7049937"
+  tag: "2abf266"
   pullPolicy: "Always"
   # pullSecrets:
   # - name: registry-credentials
@@ -68,12 +68,11 @@ readinessProbe:
   timeoutSeconds: 3
   successThreshold: 1
   failureThreshold: 3
-
 persistentVolumesClaims:
   - name: data
     accessModes:
       - ReadWriteOnce
-    storageClassName: standard  
+    storageClassName: standard
     size: 1Gi
 application:
   ports:
@@ -113,9 +112,9 @@ config:
     # gcp:
     #   bucket: "helm-portal-backup"
     #   projectID: "dc-consulting-home"
-      # aws:
-      #   bucket: "helm-portal-backup"
-      #   region: "eu-west-1"
+    # aws:
+    #   bucket: "helm-portal-backup"
+    #   region: "eu-west-1"
   logging:
     level: "info"
     format: "text"
