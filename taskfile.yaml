@@ -2,7 +2,7 @@ version: '3'
 
 tasks:
 
-  dev:
+  run-dev:
     desc: start air go
     dir: src
     cmds:
@@ -13,7 +13,7 @@ tasks:
     cmds:
     - docker compose build --push
 
-  run:
+  start:
     desc: Run the Docker container
     cmds:
     - docker compose up -d
