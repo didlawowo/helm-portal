@@ -1,7 +1,7 @@
 domainName: helm-portal.fizzbuzz2.com
 image:
   repository: fizzbuzz2/helm-portal
-  tag: "130f23e"
+  tag: "690afe0"
   pullPolicy: "Always"
   # pullSecrets:
   # - name: registry-credentials
