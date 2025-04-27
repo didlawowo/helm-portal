@@ -1,0 +1,9 @@
+ingressClassName: traefik
+env:
+- name: ENV
+  value: other
+persistentVolumesClaims:
+- name: data
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: longhorn
