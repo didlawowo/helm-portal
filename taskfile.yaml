@@ -1,9 +1,12 @@
 version: '3'
 
 tasks:
+  default:
+    cmds:
+    - task --list
 
   run-dev:
-    desc: start air go
+    desc: start air go en dev
     dir: src
     cmds:
     - air
@@ -23,16 +26,16 @@ tasks:
     cmds:
     - docker compose down
 
-  template:
+  helm-template:
     desc: Template the helmchart
     dir: helm
     cmds:
     - helm template .  > rendered.yaml
 
-  deploy:
+  helm-install:
     desc: Deploy the helmchart
     cmds:
-    - bash update-helm-chart.sh kube-infra
+    - helm upgrade --install helm-portal helm --namespace kube-infra --create-namespace
 
   test-upload-chart:
     desc: Test upload chart
@@ -57,8 +60,3 @@ tasks:
     dir: src/test
     cmds:
     - helm pull oci://localhost:3030/my-chart --version 0.1.0
-
-default:
-  desc: List available tasks
-  cmds:
-  - task --list

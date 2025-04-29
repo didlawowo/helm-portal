@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
 	"helm-portal/pkg/interfaces"
 	utils "helm-portal/pkg/utils"
 	"io"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/sirupsen/logrus"
 )
 
 type HelmHandler struct {
@@ -58,15 +59,38 @@ func (h *HelmHandler) GetChartVersions(c *fiber.Ctx) error {
 		})
 	}
 
+	h.log.WithFunc().WithField("chartGroupsCount", len(chartGroups)).Debug("Chart groups count")
+
+	foundChart := false
 	for _, group := range chartGroups {
+		h.log.WithFunc().WithFields(logrus.Fields{
+			"groupName":     group.Name,
+			"requestedName": name,
+			"versionsCount": len(group.Versions),
+		}).Debug("Checking chart group")
+
 		if group.Name == name {
+			foundChart = true
+			if len(group.Versions) == 0 {
+				h.log.WithFunc().Debug("Chart found but no versions available")
+				return c.Status(404).JSON(fiber.Map{
+					"error": "No versions found for this chart",
+				})
+			}
 			return c.JSON(group.Versions)
 		}
 	}
 
-	h.log.WithFunc().WithField("chart", name).Debug("Chart not found")
-	return c.Status(404).JSON(fiber.Map{
-		"error": "Chart not found",
+	if !foundChart {
+		h.log.WithFunc().WithField("chart", name).Debug("Chart not found")
+		return c.Status(404).JSON(fiber.Map{
+			"error": "Chart not found",
+		})
+	}
+
+	// Ne devrait jamais arriver ici mais par sécurité
+	return c.Status(500).JSON(fiber.Map{
+		"error": "Unknown error occurred",
 	})
 }
 
@@ -159,8 +183,9 @@ func (h *HelmHandler) DownloadChart(c *fiber.Ctx) error {
 	}
 
 	fileName := fmt.Sprintf("%s-%s.tgz", name, version)
-	c.Set("Content-Type", "application/x-tar")
+	c.Set("Content-Type", "application/gzip")
 	c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+	c.Set("Content-Length", fmt.Sprintf("%d", len(chart)))
 
 	return c.Send(chart)
 }
