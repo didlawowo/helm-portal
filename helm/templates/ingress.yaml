@@ -7,7 +7,7 @@ metadata:
     app: {{ $.Release.Name | quote }}
 
 spec:
-  ingressClassName: {{ $.Values.ingressClassName }}
+  ingressClassName: {{ $.Values.ingress.ingressClassName }}
   rules:
   - host: {{ $.Values.domainName }}
     http:
@@ -19,7 +19,9 @@ spec:
               name:  {{ template "application.fullname" . }}
               port:
                 number: {{ $.Values.service.port }}
+{{- if .Values.ingress.tls.enabled }}
   tls:
   - hosts:
     - {{ $.Values.domainName }}
-    secretName: {{ $.Release.Name }}-certificate-tls
+    secretName: {{ $.Values.ingress.tls.secretName | default (printf "%s-certificate-tls" $.Release.Name) }}
+{{- end }}

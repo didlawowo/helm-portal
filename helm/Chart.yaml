@@ -1,8 +1,8 @@
 apiVersion: "v2"
 name: "helm-portal"
-version: 1.2.0
+version: 1.3.0
 appVersion: "2.0.0"
-description: Host your chart in your cluster
+description: Host all your charts in your cluster
 type: application
 
 icon: https://avatars.githubusercontent.com/u/12622760?v=4

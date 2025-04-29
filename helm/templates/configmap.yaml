@@ -1,16 +1,10 @@
+# Correction pour configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config
-  labels:
-    app: {{ .Release.Name }}
-    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+  name: {{ template "application.fullname" . }}-config   
+  namespace: {{ .Release.Namespace }}   
+  labels: {{- include "application.labels" . | nindent 4 }}  # 🔧 Labels cohérents
 data:
   config.yaml: |-
-{{- /* Charger le contenu du fichier depuis le répertoire racine du chart */ -}}
-{{- /* Utiliser merge pour combiner le fichier statique et les valeurs dynamiques */ -}}
-{{- $config := tpl (.Files.Get "config.yaml") . | fromYaml -}}
-{{- $mergedConfig := mustMergeOverwrite $config (fromYaml (tpl (toYaml .Values.config) .)) -}}
-{{- toYaml $mergedConfig | nindent 4 }}
+{{- toYaml .Values.config | nindent 4 }}

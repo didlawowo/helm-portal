@@ -25,8 +25,9 @@ tasks:
 
   template:
     desc: Template the helmchart
+    dir: helm
     cmds:
-    - helm template helm/ -f helm/values/other/values.yaml > helm/rendered.yaml
+    - helm template .  > rendered.yaml
 
   deploy:
     desc: Deploy the helmchart

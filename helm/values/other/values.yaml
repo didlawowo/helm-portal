@@ -1,4 +1,0 @@
-ingressClassName: nginx
-env:
-  - name: ENV
-    value: other
