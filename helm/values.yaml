@@ -32,16 +32,16 @@ resources:
     memory: 128Mi
 # volumes 
 persistentVolumesClaims:
-  - name: data
-    accessModes:
-      - ReadWriteOnce
-    storageClassName: longhorn
-    size: 1Gi
+- name: data
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: longhorn
+  size: 1Gi
 application:
   ports:
-    - name: http
-      containerPort: 3030
-      protocol: TCP
+  - name: http
+    containerPort: 3030
+    protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -51,33 +51,33 @@ service:
   type: ClusterIP
   portName: http
 secrets:
-  dotenv:
-    - name: backup
-      path: values/home/secrets/secrets.env
+  dotenv: []
+  #   - name: backup
+  #     path: values/home/secrets/secrets.env
   files:
-    - name: auth
-      path: values/home/secrets/auth.yaml
+  - name: auth
+    path: values/home/secrets/auth.yaml
 volumeMounts:
-  - name: config-volume
-    mountPath: /app/config/config.yaml
-    subPath: config.yaml
-    readOnly: true
-  - name: data-volume
-    mountPath: /app/data
-  - name: auth-volume
-    mountPath: /app/config/auth.yaml
-    subPath: auth.yaml
-    readOnly: true
+- name: config-volume
+  mountPath: /app/config/config.yaml
+  subPath: config.yaml
+  readOnly: true
+- name: data-volume
+  mountPath: /app/data
+- name: auth-volume
+  mountPath: /app/config/auth.yaml
+  subPath: auth.yaml
+  readOnly: true
 volumes:
-  - name: config-volume
-    configMap:
-      name: helm-portal-config
-  - name: auth-volume
-    secret:
-      secretName: helm-portal-auth
-  - name: data-volume
-    persistentVolumeClaim:
-      claimName: data
+- name: config-volume
+  configMap:
+    name: helm-portal-config
+- name: auth-volume
+  secret:
+    secretName: helm-portal-auth
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: data
 # probes
 livenessProbe:
   httpGet:
@@ -105,11 +105,11 @@ ingress:
     secretName: ""
   ingressClassName: traefik
 env:
-  - name: ENV
-    value: production
-# envFrom:
+- name: ENV
+  value: production
+envFrom: []
 # - secretRef:
-#     name: backup
+#  name: helm-portal-backup
 config:
   server:
     port: 3030

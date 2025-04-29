@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"helm-portal/config"
 	"helm-portal/pkg/handlers"
 	"helm-portal/pkg/interfaces"
@@ -56,6 +57,11 @@ func setupHTTPServer(app *fiber.App, log *utils.Logger) {
 }
 
 func main() {
+
+	// Tout en haut de la fonction main
+	fmt.Println("Application starting...")
+	// Reste du code...
+
 	// Logger setup
 	logConfig := utils.Config{
 		LogLevel:  "debug", // ou depuis votre config
