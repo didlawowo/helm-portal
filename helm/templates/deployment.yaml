@@ -46,30 +46,30 @@ spec:
           {{- with .Values.volumeMounts }}
           volumeMounts: {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.livenessProbe }}
-          livenessProbe:
-            httpGet:
-              path: {{ .httpGet.path }}
-              port: {{ .httpGet.port }}
-              scheme: {{ .httpGet.scheme }}
-            initialDelaySeconds: {{ .initialDelaySeconds }}
-            periodSeconds: {{ .periodSeconds }}
-            timeoutSeconds: {{ .timeoutSeconds }}
-            successThreshold: {{ .successThreshold }}
-            failureThreshold: {{ .failureThreshold }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
-          readinessProbe:
-            httpGet:
-              path: {{ .httpGet.path }}
-              port: {{ .httpGet.port }}
-              scheme: {{ .httpGet.scheme }}
-            initialDelaySeconds: {{ .initialDelaySeconds }}
-            periodSeconds: {{ .periodSeconds }}
-            timeoutSeconds: {{ .timeoutSeconds }}
-            successThreshold: {{ .successThreshold }}
-            failureThreshold: {{ .failureThreshold }}
-          {{- end }}
+          # {{- with .Values.livenessProbe }}
+          # livenessProbe:
+          #   httpGet:
+          #     path: {{ .httpGet.path }}
+          #     port: {{ .httpGet.port }}
+          #     scheme: {{ .httpGet.scheme }}
+          #   initialDelaySeconds: {{ .initialDelaySeconds }}
+          #   periodSeconds: {{ .periodSeconds }}
+          #   timeoutSeconds: {{ .timeoutSeconds }}
+          #   successThreshold: {{ .successThreshold }}
+          #   failureThreshold: {{ .failureThreshold }}
+          # {{- end }}
+          # {{- with .Values.readinessProbe }}
+          # readinessProbe:
+          #   httpGet:
+          #     path: {{ .httpGet.path }}
+          #     port: {{ .httpGet.port }}
+          #     scheme: {{ .httpGet.scheme }}
+          #   initialDelaySeconds: {{ .initialDelaySeconds }}
+          #   periodSeconds: {{ .periodSeconds }}
+          #   timeoutSeconds: {{ .timeoutSeconds }}
+          #   successThreshold: {{ .successThreshold }}
+          #   failureThreshold: {{ .failureThreshold }}
+          # {{- end }}
       {{- with .Values.volumes }}
       volumes: {{- toYaml . | nindent 8 }}
       {{- end }}
