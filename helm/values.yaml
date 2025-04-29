@@ -1,16 +1,14 @@
 domainName: helm-portal.example.com
 image:
   repository: fizzbuzz2/helm-portal
-  tag: "690afe0"
+  tag: "356e2e1"
   pullPolicy: "Always"
   pullSecrets: []
-
 strategy:
   type: RollingUpdate
   rollingUpdate:
     maxUnavailable: 25%
     maxSurge: 25%
-
 replicas: 1
 autoscaling:
   enabled: false
@@ -18,7 +16,6 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
-
 serviceAccount:
   create: true
   name: helm-portal
@@ -33,20 +30,18 @@ resources:
   requests:
     cpu: 200m
     memory: 128Mi
-
 # volumes 
 persistentVolumesClaims:
-- name: data
-  accessModes:
-  - ReadWriteOnce
-  storageClassName: standard
-  size: 1Gi
-
+  - name: data
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: standard
+    size: 1Gi
 application:
   ports:
-  - name: http
-    containerPort: 3030
-    protocol: TCP
+    - name: http
+      containerPort: 3030
+      protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -55,38 +50,34 @@ service:
   targetPort: 3030
   type: ClusterIP
   portName: http
-
 secrets:
   dotenv:
-  - name: backup
-    path: values/home/secrets/secrets.env
+    - name: backup
+      path: values/home/secrets/secrets.env
   files:
-  - name: auth
-    path: values/home/secrets/auth.yaml
-
+    - name: auth
+      path: values/home/secrets/auth.yaml
 volumeMounts:
-- name: config-volume
-  mountPath: /app/config/config.yaml
-  subPath: config.yaml
-  readOnly: true
-- name: data-volume
-  mountPath: /app/data
-- name: auth-volume
-  mountPath: /app/config/auth.yaml
-  subPath: auth.yaml
-  readOnly: true
-
+  - name: config-volume
+    mountPath: /app/config/config.yaml
+    subPath: config.yaml
+    readOnly: true
+  - name: data-volume
+    mountPath: /app/data
+  - name: auth-volume
+    mountPath: /app/config/auth.yaml
+    subPath: auth.yaml
+    readOnly: true
 volumes:
-- name: config-volume
-  configMap:
-    name: config
-- name: auth-volume
-  secret:
-    secretName: helm-portal-auth
-- name: data-volume
-  persistentVolumeClaim:
-    claimName: data
-
+  - name: config-volume
+    configMap:
+      name: config
+  - name: auth-volume
+    secret:
+      secretName: helm-portal-auth
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: data
 # probes
 livenessProbe:
   httpGet:
@@ -108,20 +99,17 @@ readinessProbe:
   timeoutSeconds: 3
   successThreshold: 1
   failureThreshold: 3
-
 ingress:
   tls:
     enabled: true
     secretName: ""
   ingressClassName: traefik
-
 env:
-- name: ENV
-  value: production
+  - name: ENV
+    value: production
 envFrom:
-- secretRef:
-    name: backup
-
+  - secretRef:
+      name: backup
 config:
   server:
     port: 3030
