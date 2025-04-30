@@ -30,7 +30,7 @@ tasks:
     desc: Template the helmchart
     dir: helm
     cmds:
-    - helm template .  > rendered.yaml
+    - helm template . --debug  > rendered.yaml
 
   helm-install:
     desc: Deploy the helmchart
