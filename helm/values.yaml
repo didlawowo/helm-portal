@@ -1,8 +1,6 @@
-domainName: helm-portal.example.com
-fullnameOverride: helm-portal
-nameOverride: helm-portal
+domainName: "helm-portal.example.com"
+fullnameOverride: "helm-portal"
 namespace: helm-portal
-commonLabels: {}
 podAnnotations: {}
 podSecurityContext: {}
 image:
@@ -38,16 +36,16 @@ resources:
     memory: 128Mi
 # volumes 
 persistentVolumesClaims:
-  - name: helm-portaldata
-    accessModes:
-      - ReadWriteOnce
-    storageClassName: longhorn
-    size: 2Gi
+- name: helm-portaldata
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: longhorn
+  size: 2Gi
 application:
   ports:
-    - name: http
-      containerPort: 3030
-      protocol: TCP
+  - name: http
+    containerPort: 3030
+    protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -61,29 +59,29 @@ secrets:
   #   - name: backup
   #     path: values/home/secrets/secrets.env
   files:
-    - name: auth
-      path: values/home/secrets/auth.yaml
+  - name: auth
+    path: values/home/secrets/auth.yaml
 volumeMounts:
-  - name: config-volume
-    mountPath: /app/config/config.yaml
-    subPath: config.yaml
-    readOnly: true
-  - name: data-volume
-    mountPath: /app/data
-  - name: auth-volume
-    mountPath: /app/config/auth.yaml
-    subPath: auth.yaml
-    readOnly: true
+- name: config-volume
+  mountPath: /app/config/config.yaml
+  subPath: config.yaml
+  readOnly: true
+- name: data-volume
+  mountPath: /app/data
+- name: auth-volume
+  mountPath: /app/config/auth.yaml
+  subPath: auth.yaml
+  readOnly: true
 volumes:
-  - name: config-volume
-    configMap:
-      name: helm-portal-config
-  - name: auth-volume
-    secret:
-      secretName: helm-portal-auth
-  - name: data-volume
-    persistentVolumeClaim:
-      claimName: helm-portal-data
+- name: config-volume
+  configMap:
+    name: helm-portal-config
+- name: auth-volume
+  secret:
+    secretName: helm-portal-auth
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: helm-portal-data
 # probes
 livenessProbe:
   httpGet:
@@ -111,8 +109,8 @@ ingress:
     secretName: ""
   ingressClassName: traefik
 env:
-  - name: ENV
-    value: production
+- name: ENV
+  value: production
 envFrom: []
 # - secretRef:
 #  name: helm-portal-backup
