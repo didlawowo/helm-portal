@@ -1,4 +1,5 @@
 domainName: helm-portal.example.com
+fullnameOverride: helm-portal
 image:
   repository: fizzbuzz2/helm-portal
   tag: "aa0e56f"

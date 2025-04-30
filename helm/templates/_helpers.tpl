@@ -52,3 +52,12 @@ Selector labels.
 app.kubernetes.io/name: {{ template "application.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+
+{{- define "application.fullname" -}}
+{{- if and (hasKey .Values "fullnameOverride") .Values.fullnameOverride -}}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+...
+{{- end -}}
+{{- end -}}
