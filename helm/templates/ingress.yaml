@@ -16,7 +16,7 @@ spec:
         pathType: Prefix
         backend:
             service:
-              name:  {{ template "application.fullname" . }}
+              name:  {{ $.Values.service.name }}
               port:
                 number: {{ $.Values.service.port }}
 {{- if .Values.ingress.tls.enabled }}

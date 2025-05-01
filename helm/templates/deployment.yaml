@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "application.fullname" . }}
+  name: helm-portal
   labels: {{- include "application.labels" . | nindent 4 }}
     tags.datadoghq.com/env: "home"
     tags.datadoghq.com/service: "helm-portal"
@@ -20,9 +20,9 @@ spec:
       labels: {{- include "application.labels" . | nindent 8 }}
 
     spec:
-      serviceAccountName: {{ default (include "application.fullname" .) .Values.serviceAccount.name }}
+      serviceAccountName: {{  .Values.serviceAccount.name }}
       containers:
-        - name: {{ default .Values.application.containerName (include "application.fullname" .) }}
+        - name: {{ default .Values.application.containerName }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- with .Values.application.ports }}
