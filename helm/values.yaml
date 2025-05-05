@@ -5,7 +5,7 @@ podAnnotations: {}
 podSecurityContext: {}
 image:
   repository: fizzbuzz2/helm-portal
-  tag: "5875dd2"
+  tag: "2f67934"
   pullPolicy: "Always"
   pullSecrets: []
 strategy:
