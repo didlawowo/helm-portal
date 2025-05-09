@@ -11,12 +11,14 @@ ingress:
     enabled: true
     secretName: ""
   ingressClassName: traefik
+
 env:
 - name: ENV
   value: home
-envFrom:
-- secretRef:
-  name: helm-portal-backup
+# envFrom:
+# - secretRef:
+#   name: helm-portal-backup
+
 config:
   server:
     port: 3030

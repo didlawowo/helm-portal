@@ -35,7 +35,7 @@ tasks:
   helm-install:
     desc: Deploy the helmchart
     cmds:
-    - helm upgrade --install helm-portal helm --namespace kube-infra --create-namespace
+    - helm upgrade --install helm-portal helm --namespace kube-infra --create-namespace -f helm/values/home/values.yaml
 
   test-upload-chart:
     desc: Test upload chart
