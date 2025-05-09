@@ -4,9 +4,6 @@ kind: Deployment
 metadata:
   name: helm-portal
   labels: {{- include "application.labels" . | nindent 4 }}
-    tags.datadoghq.com/env: "home"
-    tags.datadoghq.com/service: "helm-portal"
-    tags.datadoghq.com/version: "1.0"
   namespace: {{ .Release.Namespace }}
 spec:
   {{- if not .Values.autoscaling.enabled  }}
@@ -18,7 +15,6 @@ spec:
   template:
     metadata:
       labels: {{- include "application.labels" . | nindent 8 }}
-
     spec:
       serviceAccountName: {{  .Values.serviceAccount.name }}
       containers:

@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: {{ $.Values.ingress.ingressClassName }}
   rules:
-  - host: {{ $.Values.ingress.domainName }}
+  - host: {{ $.Values.ingress.host }}
     http:
       paths:
       - path: /
@@ -21,6 +21,6 @@ spec:
 {{- if .Values.ingress.tls.enabled }}
   tls:
   - hosts:
-    - {{ $.Values.ingress.domainName }}
+    - {{ $.Values.ingress.host }}
     secretName: {{ $.Values.ingress.tls.secretName | default (printf "%s-certificate-tls" $.Release.Name) }}
 {{- end }}
