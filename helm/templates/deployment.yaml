@@ -17,6 +17,7 @@ spec:
       labels: {{- include "application.labels" . | nindent 8 }}
     spec:
       serviceAccountName: {{  .Values.serviceAccount.name }}
+      initContainers: {{- toYaml .Values.initContainers | nindent 8 }}
       containers:
         - name: {{ default .Values.application.containerName }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}

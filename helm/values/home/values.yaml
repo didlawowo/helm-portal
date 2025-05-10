@@ -9,7 +9,7 @@ ingress:
   host: helm-portal.dc-tech.work
   tls:
     enabled: true
-    secretName: ""
+    secretName: "wildcard-dc"
   ingressClassName: traefik
 
 env:
@@ -25,7 +25,7 @@ config:
   storage:
     path: "data"
   backup:
-    enabled: true
+    enabled: false
     provider: "gcp" # "aws" ou "gcp"
     gcp:
       bucket: "helm-portal-backup"
@@ -44,3 +44,5 @@ secrets:
   files:
   - name: auth
     path: values/home/secrets/auth.yaml
+  - name: gcp
+    path: values/home/secrets/gcp-creds.j
