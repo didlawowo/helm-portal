@@ -84,3 +84,17 @@ tasks:
     dir: src
     cmds:
     - go test -run TestHealth ./... -v
+
+  test-auth:
+    desc: Run authentication unit tests
+    dir: tests
+    cmds:
+    - go mod tidy
+    - go test -v
+
+  test-external:
+    desc: Run all external tests (tests/ directory)
+    dir: tests
+    cmds:
+    - go mod tidy
+    - go test ./... -v
