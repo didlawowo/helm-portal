@@ -15,6 +15,15 @@ ingress:
 env:
 - name: ENV
   value: home
+# Logging configuration
+- name: LOG_LEVEL
+  value: "info"
+- name: LOG_FORMAT
+  value: "text"  # "text" avec couleurs ou "json"
+# Auth configuration - Option 1: Variable unique avec liste
+- name: HELM_USERS
+  value: "admin:secret123,dev:devpass,readonly:readpass"
+
 # envFrom:
 # - secretRef:
 #   name: helm-portal-backup

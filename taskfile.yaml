@@ -68,7 +68,7 @@ tasks:
     - go test ./... -v
 
   test-unit:
-    desc: Run unit tests only (pkg/*_test.go) 
+    desc: Run unit tests only (pkg/*_test.go)
     dir: src
     cmds:
     - go test ./pkg/... -v
@@ -98,3 +98,91 @@ tasks:
     cmds:
     - go mod tidy
     - go test ./... -v
+
+  test-azure:
+    desc: Run Azure backup tests (unit tests only)
+    dir: tests
+    cmds:
+    - go mod tidy
+    - go test -run TestAzure -v
+
+  test-azure-integration:
+    desc: Run Azure integration tests (requires real Azure credentials)
+    dir: tests
+    cmds:
+    - go mod tidy
+    - AZURE_INTEGRATION_TEST=true go test -run TestAzureIntegration -v
+
+  test-azure-mock:
+    desc: Run Azure mock tests
+    dir: tests
+    cmds:
+    - go mod tidy
+    - go test -run TestAzureBackupMock -v
+
+  create-auth-secret:
+    desc: Create Kubernetes secret for authentication
+    cmds:
+    - kubectl create secret generic helm-portal-auth --from-literal=HELM_USERS="admin:secret123,dev:devpass,readonly:readpass" --namespace=kube-infra --dry-run=client -o yaml | kubectl apply -f -
+
+  create-backup-secret:
+    desc: Create Kubernetes secret for backup credentials (AWS example)
+    cmds:
+    - kubectl create secret generic helm-portal-backup --from-literal=BACKUP_ENABLED="true" --from-literal=BACKUP_PROVIDER="aws" --from-literal=AWS_BUCKET="helm-portal-backup" --from-literal=AWS_REGION="eu-west-1" --from-literal=AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY" --from-literal=AWS_SECRET_ACCESS_KEY="YOUR_SECRET_KEY" --namespace=kube-infra --dry-run=client -o yaml | kubectl apply -f -
+
+  create-backup-secret-gcp:
+    desc: Create Kubernetes secret for backup credentials (GCP example)
+    cmds:
+    - kubectl create secret generic helm-portal-backup --from-literal=BACKUP_ENABLED="true" --from-literal=BACKUP_PROVIDER="gcp" --from-literal=GCP_BUCKET="helm-portal-backup" --from-literal=GCP_PROJECT_ID="your-project-id" --from-file=GCP_CREDENTIALS_FILE="/path/to/service-account.json" --namespace=kube-infra --dry-run=client -o yaml | kubectl apply -f -
+
+  delete-secrets:
+    desc: Delete all helm-portal secrets
+    cmds:
+    - kubectl delete secret helm-portal-auth helm-portal-backup --namespace=kube-infra --ignore-not-found=true
+
+  show-secrets:
+    desc: Show current secrets (base64 decoded)
+    cmds:
+    - echo "=== Auth Secret ==="
+    - kubectl get secret helm-portal-auth --namespace=kube-infra -o yaml || echo "Secret not found"
+    - echo ""
+    - echo "=== Backup Secret ==="
+    - kubectl get secret helm-portal-backup --namespace=kube-infra -o yaml || echo "Secret not found"
+
+  test-helm-login:
+    desc: Test Helm login to local registry
+    cmds:
+    - echo "Testing Helm login with credentials admin:admin123"
+    - helm registry login localhost:3030 --username admin --password admin123 --debug
+
+  test-helm-registry-login:
+    desc: Test Helm registry login with verbose output
+    cmds:
+    - echo "Testing Helm registry login with full debug output"
+    - HELM_DEBUG=true helm registry login localhost:3030 --username admin --password admin123 --debug
+
+  test-helm-push-authenticated:
+    desc: Test authenticated chart push after login
+    dir: src/testdata/charts
+    cmds:
+    - echo "First login to registry"
+    - helm registry login localhost:3030 --username admin --password admin123
+    - echo "Now pushing chart"
+    - helm push my-chart-0.1.0.tgz oci://localhost:3030/ --debug
+
+  test-helm-logout:
+    desc: Test Helm logout from registry
+    cmds:
+    - helm registry logout localhost:3030
+  # test-auth-workflow:
+  #   desc: Test complete authentication workflow
+  #   dir: src/testdata/charts
+  #   cmds:
+  #   - echo "=== Step 1: Login ==="
+  #   - helm registry login localhost:3030 --username admin --password admin123 --debug
+  #   - echo "=== Step 2: Push Chart ==="
+  #   - helm push my-chart-0.1.0.tgz oci://localhost:3030/ --debug
+  #   - echo "=== Step 3: Pull Chart ==="
+  #   - helm pull oci://localhost:3030/my-chart --version 0.1.0 --debug
+  #   - echo "=== Step 4: Logout ==="
+  #   - helm registry logout localhost:3030

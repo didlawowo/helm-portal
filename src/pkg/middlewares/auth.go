@@ -64,8 +64,16 @@ func (m *AuthMiddleware) Authenticate() fiber.Handler {
 
 		username, password := parts[0], parts[1]
 
+		// Debug: Log le nombre d'utilisateurs configurés
+		m.log.WithField("total_users", len(m.config.Auth.Users)).Debug("Checking authentication")
+		
 		// Vérifier les credentials
 		for _, user := range m.config.Auth.Users {
+			m.log.WithFields(map[string]interface{}{
+				"config_user": user.Username,
+				"input_user":  username,
+			}).Debug("Comparing user")
+			
 			if user.Username == username && user.Password == password {
 				m.log.WithField("username", username).Info("User authenticated successfully")
 				return c.Next()

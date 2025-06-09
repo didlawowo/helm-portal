@@ -40,6 +40,8 @@ func NewLogger(config Config) *Logger {
 	default:
 		log.SetFormatter(&logrus.TextFormatter{
 			FullTimestamp: true,
+			ForceColors:   true,  // Force les couleurs même en dehors d'un TTY
+			DisableColors: false, // Activer les couleurs
 			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 				filename := filepath.Base(f.File)
 				return f.Function, filename + ":" + string(rune(f.Line))

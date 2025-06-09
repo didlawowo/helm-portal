@@ -26,12 +26,12 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 initContainers:
-  - name: init-data-dir
-    image: busybox
-    command: ["sh", "-c", "mkdir -p /app/data/temp /app/data/blobs /app/data/manifests /app/data/charts &&  chown -R 1000:1000 /app/data"]
-    volumeMounts:
-      - name: data-volume
-        mountPath: /app/data
+- name: init-data-dir
+  image: busybox
+  command: [ "sh", "-c", "mkdir -p /app/data/temp /app/data/blobs /app/data/manifests /app/data/charts &&  chown -R 1000:1000 /app/data" ]
+  volumeMounts:
+  - name: data-volume
+    mountPath: /app/data
 resources:
   limits:
     cpu: 300m
@@ -41,16 +41,16 @@ resources:
     memory: 128Mi
 # volumes 
 persistentVolumesClaims:
-  - name: helm-portal-data
-    accessModes:
-      - ReadWriteOnce
-    storageClassName: default
-    size: 2Gi
+- name: helm-portal-data
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: default
+  size: 2Gi
 application:
   ports:
-    - name: http
-      containerPort: 3030
-      protocol: TCP
+  - name: http
+    containerPort: 3030
+    protocol: TCP
   containerName: helm-portal
   command: []
   args: []
@@ -65,32 +65,33 @@ secrets:
   #   - name: backup
   #     path: values/home/secrets/secrets.env
   files:
-    - name: auth
-      path: values/home/secrets/auth.yaml
+  - name: auth
+    path: values/home/secrets/auth.yaml
 volumeMounts:
-  - name: config-volume
-    mountPath: /app/config # Répertoire entier
-    readOnly: true
-  - name: data-volume
-    mountPath: /app/data
+- name: config-volume
+  mountPath: /app/config # Répertoire entier
+  readOnly: true
+- name: data-volume
+  mountPath: /app/data
+
 volumes:
-  - name: config-volume
-    projected:
-      # 🎯 Combine plusieurs sources
-      sources:
-        - configMap:
-            name: helm-portal-config
-            items:
-              - key: config.yaml
-                path: config.yaml # Sera /app/config/config.yaml
-        - secret:
-            name: helm-portal-auth
-            items:
-              - key: auth.yaml
-                path: auth.yaml
-  - name: data-volume
-    persistentVolumeClaim:
-      claimName: helm-portal-data
+- name: config-volume
+  projected:
+    # 🎯 Combine plusieurs sources
+    sources:
+    - configMap:
+        name: helm-portal-config
+        items:
+        - key: config.yaml
+          path: config.yaml # Sera /app/config/config.yaml
+    - secret:
+        name: helm-portal-auth
+        items:
+        - key: auth.yaml
+          path: auth.yaml
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: helm-portal-data
 # probes
 livenessProbe:
   httpGet:
@@ -119,11 +120,59 @@ ingress:
     secretName: ""
   ingressClassName: nginx
 env:
-  - name: ENV
-    value: production
+- name: ENV
+  value: production
+# Configuration via variables d'environnement
+- name: SERVER_PORT
+  value: "3030"
+- name: LOG_LEVEL
+  value: "info"
+# Auth configuration - Choisir UNE des 3 options :
+
+# Auth configuration - Option 1: Variable unique avec liste
+# Temporaire pour test - à remplacer par secret en production
+- name: HELM_USERS
+  value: "admin:secret123,dev:devpass,readonly:readpass"
+
+# Backup configuration (si activé)
+# - name: BACKUP_ENABLED
+#   value: "true"
+# - name: BACKUP_PROVIDER
+#   value: "aws"  # ou "gcp" ou "azure"
+
+# AWS config
+# - name: AWS_BUCKET
+#   value: "helm-portal-backup"
+# - name: AWS_REGION
+#   value: "eu-west-1"
+# - name: AWS_ACCESS_KEY_ID
+#   value: "your-access-key"
+# - name: AWS_SECRET_ACCESS_KEY
+#   value: "your-secret-key"
+
+# GCP config  
+# - name: GCP_BUCKET
+#   value: "helm-portal-backup"
+# - name: GCP_PROJECT_ID
+#   value: "your-project-id"
+# - name: GCP_CREDENTIALS_FILE
+#   value: "/path/to/credentials.json"
+
+# Azure config
+# - name: AZURE_STORAGE_ACCOUNT
+#   value: "helmportalbackup"
+# - name: AZURE_CONTAINER
+#   value: "backup"
+# - name: AZURE_STORAGE_ACCOUNT_KEY
+#   value: "your-storage-key"
+
 envFrom: []
+# Secret pour les credentials d'authentification (activer après création du secret)
 # - secretRef:
-#  name: helm-portal-backup
+#     name: helm-portal-auth
+# Secret pour les credentials de backup (optionnel)
+# - secretRef:
+#     name: helm-portal-backup
 config:
   server:
     port: 3030
