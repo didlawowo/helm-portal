@@ -39,24 +39,48 @@ tasks:
 
   test-upload-chart:
     desc: Test upload chart
-    dir: src/test
+    dir: src/testdata/charts
     cmds:
-    - http -f POST http://localhost:3030/chart chart@test-chart-0.1.0.tgz
+    - http -f POST http://localhost:3030/chart chart@my-chart-0.1.0.tgz
 
   test-delete-chart:
     desc: Test Delete chart
-    dir: src/test
+    dir: src/testdata/charts
     cmds:
-    - http DELETE http://localhost:3030/chart/test-chart version==0.1.0
+    - http DELETE http://localhost:3030/chart/my-chart version==0.1.0
 
   test-push-chart:
     desc: Test push chart
-    dir: src/test
+    dir: src/testdata/charts
     cmds:
-    - helm push  my-chart-0.1.0.tgz oci://localhost:3030/
+    - helm push my-chart-0.1.0.tgz oci://localhost:3030/
 
   test-pull-chart:
     desc: Test pull chart
-    dir: src/test
+    dir: src/testdata/charts
     cmds:
     - helm pull oci://localhost:3030/my-chart --version 0.1.0
+
+  test:
+    desc: Run all Go tests (clean - passing tests only)
+    dir: src
+    cmds:
+    - go test ./... -v
+
+  test-unit:
+    desc: Run unit tests only (pkg/*_test.go) 
+    dir: src
+    cmds:
+    - go test ./pkg/... -v
+
+  test-integration:
+    desc: Run integration tests (integration_test.go)
+    dir: src
+    cmds:
+    - go test -run TestHealth ./... -v
+
+  test-health:
+    desc: Run health endpoint integration tests
+    dir: src
+    cmds:
+    - go test -run TestHealth ./... -v

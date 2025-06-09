@@ -45,4 +45,4 @@ secrets:
   - name: auth
     path: values/home/secrets/auth.yaml
   - name: gcp
-    path: values/home/secrets/gcp-creds.j
+    path: values/home/secrets/gcp-creds.json
