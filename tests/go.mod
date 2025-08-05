@@ -5,7 +5,7 @@ go 1.23.4
 replace helm-portal => ../src
 
 require (
-	github.com/gofiber/fiber/v2 v2.52.6
+	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/stretchr/testify v1.10.0
 	helm-portal v0.0.0-00010101000000-000000000000
 )
