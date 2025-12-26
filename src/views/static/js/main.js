@@ -229,13 +229,182 @@ function updateChart(cardElement, chartName, versions) {
     window.chartVersions[chartName] = versions;
 }
 
+// 🐳 Docker Images Management
+/**
+ * Current active tab
+ */
+let activeTab = 'charts';
+
+/**
+ * Switch between charts and images tabs
+ * @param {string} tab - The tab to show ('charts' or 'images')
+ */
+function showTab(tab) {
+    activeTab = tab;
+
+    const chartsSection = document.getElementById('chartsSection');
+    const imagesSection = document.getElementById('imagesSection');
+    const chartsTab = document.getElementById('chartsTab');
+    const imagesTab = document.getElementById('imagesTab');
+
+    if (tab === 'charts') {
+        chartsSection.style.display = 'block';
+        imagesSection.style.display = 'none';
+        chartsTab.classList.add('active', 'bg-blue-700');
+        imagesTab.classList.remove('active', 'bg-blue-700');
+    } else {
+        chartsSection.style.display = 'none';
+        imagesSection.style.display = 'block';
+        chartsTab.classList.remove('active', 'bg-blue-700');
+        imagesTab.classList.add('active', 'bg-blue-700');
+        // Load images when switching to images tab
+        loadDockerImages();
+    }
+}
+
+/**
+ * Fetch and display Docker images
+ */
+async function loadDockerImages() {
+    const container = document.getElementById('imagesContainer');
+    const noImagesMessage = document.getElementById('noImagesMessage');
+
+    try {
+        const response = await fetch('/images');
+        const data = await response.json();
+
+        if (!data.images || data.images.length === 0) {
+            container.innerHTML = '';
+            noImagesMessage.style.display = 'flex';
+            return;
+        }
+
+        noImagesMessage.style.display = 'none';
+        container.innerHTML = data.images.map(imageGroup => createImageCard(imageGroup)).join('');
+
+    } catch (error) {
+        console.error('Error loading Docker images:', error);
+        container.innerHTML = `
+            <div class="col-span-full text-center text-red-500">
+                <i class="material-icons text-4xl">error</i>
+                <p>Failed to load Docker images</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Create HTML card for a Docker image
+ * @param {Object} imageGroup - The image group data
+ * @returns {string} HTML string for the image card
+ */
+function createImageCard(imageGroup) {
+    const name = imageGroup.Name;
+    const tags = imageGroup.Tags || [];
+    const firstTag = tags.length > 0 ? tags[0] : null;
+
+    if (!firstTag) {
+        return '';
+    }
+
+    // Format size
+    const formatSize = (bytes) => {
+        if (!bytes) return 'Unknown';
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+    };
+
+    const tagsHtml = tags.length > 1
+        ? `<select class="mt-2 text-sm border rounded p-1" onchange="switchImageTag('${name}', this.value)">
+             ${tags.map(t => `<option value="${t.Tag}">${t.Tag}</option>`).join('')}
+           </select>`
+        : `<p class="mt-2 text-sm text-gray-600">Tag: ${firstTag.Tag}</p>`;
+
+    return `
+        <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[200px]" data-image-name="${name}">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-purple-600">
+                        <a href="/image/${name}/${firstTag.Tag}/details">${name}</a>
+                    </h2>
+                    ${tagsHtml}
+                </div>
+                <div class="flex gap-2">
+                    <a href="/image/${name}/${firstTag.Tag}/details" class="tooltip-trigger" data-tooltip="View image details">
+                        <i class="material-icons icon-info text-blue-500 hover:text-blue-700">info</i>
+                    </a>
+                    <a href="#" onclick="deleteImage('${name}', '${firstTag.Tag}')" class="tooltip-trigger" data-tooltip="Delete this tag">
+                        <i class="material-icons icon-delete text-red-500 hover:text-red-700">delete</i>
+                    </a>
+                </div>
+            </div>
+            <div class="flex-1 overflow-hidden">
+                <div class="text-sm text-gray-600 mb-2">
+                    <p><span class="font-semibold">Size:</span> ${formatSize(firstTag.Size)}</p>
+                    <p><span class="font-semibold">Layers:</span> ${firstTag.Layers ? firstTag.Layers.length : 'N/A'}</p>
+                </div>
+                <p class="text-gray-500 text-xs truncate">
+                    <span class="font-semibold">Digest:</span> ${firstTag.Digest ? firstTag.Digest.substring(0, 20) + '...' : 'N/A'}
+                </p>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Switch to a different tag for an image
+ * @param {string} imageName - The image name
+ * @param {string} tag - The tag to switch to
+ */
+function switchImageTag(imageName, tag) {
+    const card = document.querySelector(`[data-image-name="${imageName}"]`);
+    if (!card) return;
+
+    // Update links
+    const infoLink = card.querySelector('.icon-info').parentElement;
+    const deleteLink = card.querySelector('.icon-delete').parentElement;
+
+    infoLink.href = `/image/${imageName}/${tag}/details`;
+    deleteLink.onclick = function() { deleteImage(imageName, tag); };
+}
+
+/**
+ * Delete a Docker image tag
+ * @param {string} name - The image name
+ * @param {string} tag - The tag to delete
+ */
+async function deleteImage(name, tag) {
+    if (!confirm(`Are you sure you want to delete ${name}:${tag}?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/image/${name}/${tag}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete image');
+        }
+
+        showModal(`Image ${name}:${tag} deleted successfully`, false);
+        loadDockerImages(); // Refresh the list
+
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        showModal(`Error deleting image: ${error.message}`);
+    }
+}
+
 // 🚀 Initialisation
 document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM loaded'); // Debug
-    
+
     // Vérifier le statut de la fonctionnalité de backup
     checkBackupStatus();
-    
+
     // Initialiser le gestionnaire d'événements pour le formulaire d'upload
     const uploadForm = document.getElementById('uploadForm');
     if (uploadForm) {
@@ -243,27 +412,27 @@ document.addEventListener('DOMContentLoaded', function () {
             const fileInput = this.querySelector('input[type="file"]');
             if (fileInput.files.length > 0) {
                 fileInput.insertAdjacentHTML('afterend',
-                    '<span class="ml-2 text-blue-600">⏳ Uploading ' + fileInput.files[0].name + '...</span>');
+                    '<span class="ml-2 text-blue-600">Uploading ' + fileInput.files[0].name + '...</span>');
             }
         });
     }
-    
+
     // Sélectionner les boutons de fermeture de la modale par leur position plutôt que par l'attribut onclick
     const modalCloseIcon = document.querySelector('#errorModal .material-icons');
     const modalCloseButton = document.querySelector('#errorModal .bg-blue-600');
-    
+
     if (modalCloseIcon) {
         modalCloseIcon.addEventListener('click', function() {
             closeErrorModal();
         });
     }
-    
+
     if (modalCloseButton) {
         modalCloseButton.addEventListener('click', function() {
             closeErrorModal();
         });
     }
-    
+
     // Remplacer le gestionnaire d'événement du bouton de backup
     const backupButton = document.getElementById('backupButton');
     if (backupButton) {
@@ -275,11 +444,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return false;
         });
     }
-    
- 
+
     // Initialiser le cache des versions
     window.chartVersions = {};
-    
+
     // Pré-charger les versions pour chaque chart
     const cards = document.querySelectorAll('[data-chart-name]');
     cards.forEach(async (card) => {

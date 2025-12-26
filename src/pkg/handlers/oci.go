@@ -17,16 +17,18 @@ import (
 )
 
 type OCIHandler struct {
-	log         *utils.Logger
-	service     interfaces.ChartServiceInterface
-	pathManager *utils.PathManager
+	log          *utils.Logger
+	chartService interfaces.ChartServiceInterface
+	imageService interfaces.ImageServiceInterface
+	pathManager  *utils.PathManager
 }
 
-func NewOCIHandler(service interfaces.ChartServiceInterface, log *utils.Logger) *OCIHandler {
+func NewOCIHandler(chartService interfaces.ChartServiceInterface, imageService interfaces.ImageServiceInterface, log *utils.Logger) *OCIHandler {
 	return &OCIHandler{
-		service:     service,
-		log:         log,
-		pathManager: service.GetPathManager(),
+		chartService: chartService,
+		imageService: imageService,
+		log:          log,
+		pathManager:  chartService.GetPathManager(),
 	}
 }
 
@@ -66,19 +68,77 @@ func (h *OCIHandler) GetBlob(c *fiber.Ctx) error {
 func (h *OCIHandler) HandleCatalog(c *fiber.Ctx) error {
 	h.log.WithFunc().Debug("Processing catalog request")
 
-	charts, err := h.service.ListCharts()
+	repositories := make([]string, 0)
+
+	// List Helm charts
+	charts, err := h.chartService.ListCharts()
 	if err != nil {
-		h.log.WithFunc().WithError(err).Error("Failed to list charts")
-		return c.Status(500).JSON(fiber.Map{"error": "Failed to list charts"})
+		h.log.WithFunc().WithError(err).Warn("Failed to list charts")
+	} else {
+		for _, chart := range charts {
+			repositories = append(repositories, chart.Name)
+		}
 	}
 
-	repositories := make([]string, 0)
-	for _, chart := range charts {
-		repositories = append(repositories, chart.Name)
+	// List Docker images
+	if h.imageService != nil {
+		images, err := h.imageService.ListImages()
+		if err != nil {
+			h.log.WithFunc().WithError(err).Warn("Failed to list images")
+		} else {
+			for _, image := range images {
+				// Avoid duplicates
+				found := false
+				for _, r := range repositories {
+					if r == image.Name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					repositories = append(repositories, image.Name)
+				}
+			}
+		}
 	}
 
 	return c.JSON(fiber.Map{
 		"repositories": repositories,
+	})
+}
+
+// HandleListTags returns all tags for a repository (OCI Distribution Spec)
+func (h *OCIHandler) HandleListTags(c *fiber.Ctx) error {
+	name := c.Params("name")
+
+	h.log.WithFunc().WithField("name", name).Debug("Processing tags list request")
+
+	tags := make([]string, 0)
+
+	// Try to get tags from image service first
+	if h.imageService != nil {
+		imageTags, err := h.imageService.ListTags(name)
+		if err == nil && len(imageTags) > 0 {
+			tags = append(tags, imageTags...)
+		}
+	}
+
+	// Also check for chart versions as tags
+	charts, err := h.chartService.ListCharts()
+	if err == nil {
+		for _, chart := range charts {
+			if chart.Name == name {
+				for _, version := range chart.Versions {
+					tags = append(tags, version.Version)
+				}
+				break
+			}
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"name": name,
+		"tags": tags,
 	})
 }
 
@@ -96,54 +156,27 @@ func (h *OCIHandler) HandleManifest(c *fiber.Ctx) error {
 		"reference": reference,
 	}).Debug("Processing manifest request")
 
-	var manifestPath string
-	if strings.HasPrefix(reference, "sha256:") {
-		manifestsDir := filepath.Join(h.pathManager.GetBasePath(), "manifests", name)
-		files, err := os.ReadDir(manifestsDir)
-		if err != nil {
-			h.log.WithFunc().WithError(err).Debug("Manifest directory not found")
-			return c.SendStatus(404)
-		}
-
-		for _, f := range files {
-			if f.IsDir() {
-				continue
-			}
-			currentPath := filepath.Join(manifestsDir, f.Name())
-			data, err := os.ReadFile(currentPath)
-			if err != nil {
-				continue
-			}
-
-			currentDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(data))
-			if currentDigest == reference {
-				manifestPath = currentPath
-				break
-			}
-		}
-	} else {
-		manifestPath = filepath.Join(h.pathManager.GetBasePath(), "manifests", name, reference+".json")
+	// Try to find manifest in multiple locations
+	manifestData, manifestPath, err := h.findManifest(name, reference)
+	if err != nil {
+		h.log.WithFunc().WithError(err).Debug("Manifest not found")
+		return c.SendStatus(404)
 	}
 
 	h.log.WithFunc().WithFields(logrus.Fields{
 		"manifestPath": manifestPath,
-		"exists":       fileExists(manifestPath),
-	}).Debug("Checking manifest existence")
+	}).Debug("Found manifest")
 
+	// For HEAD requests, just verify existence
 	if c.Method() == "HEAD" {
-		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
-			h.log.WithFunc().WithError(err).Debug("Manifest not found for HEAD request")
-			return c.SendStatus(404)
-		}
+		digest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifestData))
+		c.Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
+		c.Set("Docker-Content-Digest", digest)
+		c.Set("Content-Length", fmt.Sprintf("%d", len(manifestData)))
 		return c.SendStatus(200)
 	}
 
-	manifestData, err := os.ReadFile(manifestPath)
-	if err != nil {
-		h.log.WithFunc().WithError(err).WithField("path", manifestPath).Error("Failed to read manifest")
-		return c.SendStatus(500)
-	}
-
+	// Verify digest if reference is a digest
 	if strings.HasPrefix(reference, "sha256:") {
 		currentDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(manifestData))
 		if currentDigest != reference {
@@ -155,9 +188,85 @@ func (h *OCIHandler) HandleManifest(c *fiber.Ctx) error {
 		}
 	}
 
-	c.Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
+	// Determine content type from manifest
+	var manifest models.OCIManifest
+	if err := json.Unmarshal(manifestData, &manifest); err == nil && manifest.MediaType != "" {
+		c.Set("Content-Type", manifest.MediaType)
+	} else {
+		c.Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
+	}
+
 	c.Set("Docker-Content-Digest", fmt.Sprintf("sha256:%x", sha256.Sum256(manifestData)))
 	return c.Send(manifestData)
+}
+
+// findManifest searches for a manifest in all possible locations
+func (h *OCIHandler) findManifest(name, reference string) ([]byte, string, error) {
+	var searchPaths []string
+
+	if strings.HasPrefix(reference, "sha256:") {
+		// For digest references, we need to search through all manifests
+		return h.findManifestByDigest(name, reference)
+	}
+
+	// Build list of paths to check (tag-based reference)
+	searchPaths = []string{
+		// Helm charts manifests
+		filepath.Join(h.pathManager.GetBasePath(), "manifests", name, reference+".json"),
+		// Docker images manifests
+		h.pathManager.GetImageManifestPath(name, reference),
+	}
+
+	for _, path := range searchPaths {
+		if data, err := os.ReadFile(path); err == nil {
+			return data, path, nil
+		}
+	}
+
+	return nil, "", fmt.Errorf("manifest not found for %s:%s", name, reference)
+}
+
+// findManifestByDigest searches for a manifest by its digest
+func (h *OCIHandler) findManifestByDigest(name, digest string) ([]byte, string, error) {
+	// Search in Helm manifests directory
+	helmManifestsDir := filepath.Join(h.pathManager.GetBasePath(), "manifests", name)
+	if data, path, err := h.searchDirForDigest(helmManifestsDir, digest); err == nil {
+		return data, path, nil
+	}
+
+	// Search in Docker images manifests directory
+	imageManifestsDir := filepath.Join(h.pathManager.GetBasePath(), "images", name, "manifests")
+	if data, path, err := h.searchDirForDigest(imageManifestsDir, digest); err == nil {
+		return data, path, nil
+	}
+
+	return nil, "", fmt.Errorf("manifest with digest %s not found", digest)
+}
+
+// searchDirForDigest searches a directory for a file matching the given digest
+func (h *OCIHandler) searchDirForDigest(dir, targetDigest string) ([]byte, string, error) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, "", err
+	}
+
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		filePath := filepath.Join(dir, f.Name())
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		currentDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(data))
+		if currentDigest == targetDigest {
+			return data, filePath, nil
+		}
+	}
+
+	return nil, "", fmt.Errorf("digest not found in %s", dir)
 }
 
 func (h *OCIHandler) getBlobByDigest(digest string) ([]byte, error) {
@@ -331,54 +440,115 @@ func (h *OCIHandler) PutManifest(c *fiber.Ctx) error {
 		return c.SendStatus(500)
 	}
 
-	var chartLayer *struct {
-		MediaType string `json:"mediaType"`
-		Digest    string `json:"digest"`
-		Size      int    `json:"size"`
+	// Detect artifact type
+	artifactType := models.DetectArtifactType(&manifest)
+
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":         name,
+		"reference":    reference,
+		"artifactType": artifactType,
+		"configType":   manifest.Config.MediaType,
+	}).Debug("Detected artifact type")
+
+	manifestData := c.Body()
+	digest := sha256.Sum256(manifestData)
+	digestStr := fmt.Sprintf("sha256:%x", digest)
+
+	switch artifactType {
+	case models.ArtifactTypeHelmChart:
+		// Handle Helm chart
+		if err := h.handleHelmChartManifest(name, reference, &manifest); err != nil {
+			h.log.WithFunc().WithError(err).Error("Failed to handle Helm chart")
+			return c.SendStatus(500)
+		}
+		// Save manifest to Helm manifests directory
+		manifestPath := h.pathManager.GetManifestPath(name, reference)
+		if err := h.saveManifestFile(manifestPath, manifestData); err != nil {
+			return c.SendStatus(500)
+		}
+
+	case models.ArtifactTypeDockerImage:
+		// Handle Docker image
+		if h.imageService != nil {
+			if err := h.imageService.SaveImage(name, reference, &manifest); err != nil {
+				h.log.WithFunc().WithError(err).Error("Failed to save Docker image")
+				return c.SendStatus(500)
+			}
+		} else {
+			h.log.WithFunc().Warn("Image service not configured, saving manifest only")
+			// Fall back to saving manifest in images directory
+			manifestPath := h.pathManager.GetImageManifestPath(name, reference)
+			if err := h.saveManifestFile(manifestPath, manifestData); err != nil {
+				return c.SendStatus(500)
+			}
+		}
+
+	default:
+		// Unknown artifact type - save as generic OCI artifact
+		h.log.WithFunc().WithFields(logrus.Fields{
+			"configMediaType": manifest.Config.MediaType,
+		}).Warn("Unknown artifact type, saving as generic manifest")
+		manifestPath := h.pathManager.GetManifestPath(name, reference)
+		if err := h.saveManifestFile(manifestPath, manifestData); err != nil {
+			return c.SendStatus(500)
+		}
 	}
 
+	c.Set("Docker-Content-Digest", digestStr)
+	c.Set("Location", fmt.Sprintf("/v2/%s/manifests/%s", name, digestStr))
+
+	h.log.WithFunc().WithFields(logrus.Fields{
+		"name":         name,
+		"reference":    reference,
+		"artifactType": artifactType,
+		"digest":       digestStr,
+	}).Info("Manifest saved successfully")
+
+	return c.SendStatus(201)
+}
+
+// handleHelmChartManifest processes a Helm chart manifest
+func (h *OCIHandler) handleHelmChartManifest(name, reference string, manifest *models.OCIManifest) error {
+	// Find the chart layer
+	var chartDigest string
 	for _, layer := range manifest.Layers {
-		if layer.MediaType == "application/vnd.cncf.helm.chart.content.v1.tar+gzip" {
-			chartLayer = &layer
+		if layer.MediaType == models.MediaTypeHelmChart {
+			chartDigest = layer.Digest
 			break
 		}
 	}
 
-	if chartLayer != nil {
-		chartData, err := h.getBlobByDigest(chartLayer.Digest)
-		if err != nil {
-			h.log.WithFunc().WithError(err).Error("Failed to read chart data")
-			return c.SendStatus(500)
-		}
-
-		fileName := fmt.Sprintf("%s-%s.tgz", name, reference)
-		if err := h.service.SaveChart(chartData, fileName); err != nil {
-			h.log.WithFunc().WithError(err).Error("Failed to save chart")
-			return c.SendStatus(500)
-		}
-	} else {
-		h.log.WithFunc().Error("Chart layer not found in manifest")
-		return c.SendStatus(500)
+	if chartDigest == "" {
+		return fmt.Errorf("Helm chart layer not found in manifest")
 	}
 
-	manifestData := c.Body()
-	manifestPath := h.pathManager.GetManifestPath(name, reference)
+	// Get the chart data from blob storage
+	chartData, err := h.getBlobByDigest(chartDigest)
+	if err != nil {
+		return fmt.Errorf("failed to read chart data: %w", err)
+	}
 
+	// Save the chart
+	fileName := fmt.Sprintf("%s-%s.tgz", name, reference)
+	if err := h.chartService.SaveChart(chartData, fileName); err != nil {
+		return fmt.Errorf("failed to save chart: %w", err)
+	}
+
+	return nil
+}
+
+// saveManifestFile saves a manifest to the specified path
+func (h *OCIHandler) saveManifestFile(manifestPath string, data []byte) error {
 	manifestDir := filepath.Dir(manifestPath)
 	if err := os.MkdirAll(manifestDir, 0755); err != nil {
 		h.log.WithFunc().WithError(err).Error("Failed to create manifest directory")
-		return c.SendStatus(500)
+		return err
 	}
 
-	if err := os.WriteFile(manifestPath, manifestData, 0644); err != nil {
+	if err := os.WriteFile(manifestPath, data, 0644); err != nil {
 		h.log.WithFunc().WithError(err).Error("Failed to save manifest")
-		return c.SendStatus(500)
+		return err
 	}
 
-	digest := sha256.Sum256(manifestData)
-	digestStr := fmt.Sprintf("sha256:%x", digest)
-	c.Set("Docker-Content-Digest", digestStr)
-
-	h.log.WithFunc().WithField("name", name).Info("Manifest saved successfully")
-	return c.SendStatus(201)
+	return nil
 }

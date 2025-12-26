@@ -23,10 +23,11 @@ type PathManager struct {
 func NewPathManager(basePath string, log *Logger) *PathManager {
 	// Créer les dossiers nécessaires
 	dirs := []string{
-		"temp",  // Pour les uploads temporaires
-		"blobs", // Pour les blobs
-		"manifests",
-		"charts", // Pour les charts
+		"temp",     // Pour les uploads temporaires
+		"blobs",    // Pour les blobs (shared between charts and images)
+		"manifests", // Pour les manifests Helm
+		"charts",   // Pour les charts Helm
+		"images",   // Pour les images Docker
 	}
 
 	for _, dir := range dirs {
@@ -37,7 +38,6 @@ func NewPathManager(basePath string, log *Logger) *PathManager {
 	}
 
 	return &PathManager{
-
 		baseStoragePath: basePath,
 		log:             log,
 	}
@@ -118,4 +118,24 @@ func (pm *PathManager) GetOCIRepositoryPath(name string) string {
 
 func (pm *PathManager) GetIndexPath() string {
 	return filepath.Join(pm.baseStoragePath, "index.yaml")
+}
+
+// Docker image path helpers
+
+func (pm *PathManager) GetImagesPath() string {
+	return filepath.Join(pm.baseStoragePath, "images")
+}
+
+func (pm *PathManager) GetImagePath(name string) string {
+	return filepath.Join(pm.baseStoragePath, "images", name)
+}
+
+func (pm *PathManager) GetImageManifestPath(name, reference string) string {
+	// Replace : with _ for filesystem compatibility (sha256:xxx -> sha256_xxx)
+	safeRef := strings.ReplaceAll(reference, ":", "_")
+	return filepath.Join(pm.baseStoragePath, "images", name, "manifests", safeRef+".json")
+}
+
+func (pm *PathManager) GetImageTagPath(name, tag string) string {
+	return filepath.Join(pm.baseStoragePath, "images", name, "tags", tag+".json")
 }
