@@ -68,5 +68,4 @@ externalSecrets:
                 password: "{{ .adminPassword }}"
       keys:
         - name: adminPassword
-          remoteKey: didlawowo/new-home
-          property: helm-portal-password
+          remoteKey: helm-portal-password
