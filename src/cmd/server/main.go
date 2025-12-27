@@ -15,36 +15,38 @@ import (
 )
 
 // setupServices initialise et configure tous les services
-func setupServices(cfg *config.Config, log *utils.Logger) (interfaces.ChartServiceInterface, interfaces.IndexServiceInterface, *service.BackupService) {
+func setupServices(cfg *config.Config, log *utils.Logger) (interfaces.ChartServiceInterface, interfaces.ImageServiceInterface, interfaces.IndexServiceInterface, *service.BackupService) {
 
 	tmpChartService := service.NewChartService(cfg, log, nil)
 	indexService := service.NewIndexService(cfg, log, tmpChartService)
 	finalChartService := service.NewChartService(cfg, log, indexService)
+	imageService := service.NewImageService(cfg, log)
 	backupService, err := service.NewBackupService(cfg, log)
 	if err != nil {
 		log.WithFunc().WithError(err).Fatal("Failed to initialize backup service")
-		// Gérer l'erreur selon votre logique d'application
 	}
-	return finalChartService, indexService, backupService
+	return finalChartService, imageService, indexService, backupService
 }
 
 // setupHandlers initialise tous les handlers
 func setupHandlers(
 	chartService interfaces.ChartServiceInterface,
+	imageService interfaces.ImageServiceInterface,
 	_ interfaces.IndexServiceInterface,
 	pathManager *utils.PathManager,
 	cfg *config.Config,
 	backupService *service.BackupService,
 	log *utils.Logger,
 
-) (*handlers.HelmHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler, *handlers.BackupHandler) {
+) (*handlers.HelmHandler, *handlers.ImageHandler, *handlers.OCIHandler, *handlers.ConfigHandler, *handlers.IndexHandler, *handlers.BackupHandler) {
 	helmHandler := handlers.NewHelmHandler(chartService, pathManager, log)
-	ociHandler := handlers.NewOCIHandler(chartService, log)
+	imageHandler := handlers.NewImageHandler(imageService, pathManager, log)
+	ociHandler := handlers.NewOCIHandler(chartService, imageService, log)
 	configHandler := handlers.NewConfigHandler(cfg, log)
 	indexHandler := handlers.NewIndexHandler(chartService, pathManager, log)
 	backupHandler := handlers.NewBackupHandler(backupService, log, cfg)
 
-	return helmHandler, ociHandler, configHandler, indexHandler, backupHandler
+	return helmHandler, imageHandler, ociHandler, configHandler, indexHandler, backupHandler
 }
 
 func setupHTTPServer(app *fiber.App, log *utils.Logger) {
@@ -81,11 +83,12 @@ func main() {
 	pathManager := utils.NewPathManager(cfg.Storage.Path, log)
 
 	// Services
-	chartService, indexService, backupService := setupServices(cfg, log)
+	chartService, imageService, indexService, backupService := setupServices(cfg, log)
 
 	// Handlers
-	helmHandler, ociHandler, configHandler, indexHandler, backupHandler := setupHandlers(
+	helmHandler, imageHandler, ociHandler, configHandler, indexHandler, backupHandler := setupHandlers(
 		chartService,
+		imageService,
 		indexService,
 		pathManager,
 		cfg,
@@ -148,6 +151,7 @@ func main() {
 	app.Get("/", helmHandler.DisplayHome)
 	app.Get("/backup/status", backupHandler.GetBackupStatus)
 
+	// Helm Chart routes
 	app.Get("/chart/:name/:version/details", helmHandler.DisplayChartDetails)
 	app.Delete("/chart/:name/:version", helmHandler.DeleteChart)
 	app.Post("/chart", helmHandler.UploadChart)
@@ -157,6 +161,12 @@ func main() {
 	app.Get("/charts", helmHandler.ListCharts)
 	app.Get("/chart/:name/versions", helmHandler.GetChartVersions)
 
+	// Docker Image routes
+	app.Get("/images", imageHandler.ListImages)
+	app.Get("/image/:name", imageHandler.GetImageTags)
+	app.Get("/image/:name/:tag/details", imageHandler.DisplayImageDetails)
+	app.Delete("/image/:name/:tag", imageHandler.DeleteImage)
+
 	// Routes Backup
 	app.Post("/backup", backupHandler.HandleBackup)
 	app.Post("/restore", backupHandler.HandleRestore)
@@ -164,6 +174,7 @@ func main() {
 	// Routes OCI
 	ociGroup.Get("/", ociHandler.HandleOCIAPI)
 	ociGroup.Get("/_catalog", ociHandler.HandleCatalog)
+	ociGroup.Get("/:name/tags/list", ociHandler.HandleListTags)
 	ociGroup.Head("/:name/manifests/:reference", ociHandler.HandleManifest)
 	ociGroup.Get("/:name/manifests/:reference", ociHandler.HandleManifest)
 	ociGroup.Put("/:name/manifests/:reference", ociHandler.PutManifest)

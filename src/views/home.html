@@ -20,9 +20,19 @@
                 <img src="/favicon.ico" alt="Logo" class="h-8 w-8 inline-block mr-2">
                 <h1 class="text-2xl font-bold inline-block mr-4">Helm Portal</h1>
 
+                <!-- Navigation tabs -->
+                <div class="flex space-x-4 ml-8">
+                    <button onclick="showTab('charts')" id="chartsTab" class="tab-btn active px-4 py-2 rounded bg-blue-700 hover:bg-blue-800">
+                        <i class="material-icons align-middle mr-1">sailing</i> Helm Charts
+                    </button>
+                    <button onclick="showTab('images')" id="imagesTab" class="tab-btn px-4 py-2 rounded hover:bg-blue-700">
+                        <i class="material-icons align-middle mr-1">inventory_2</i> Docker Images
+                    </button>
+                </div>
+
                 <!-- Backup button -->
                 <form id="backupForm" action="/backup" method="POST" enctype="multipart/form-data"
-                    class="inline-block mr-4">
+                    class="inline-block ml-4">
                     <button id="backupButton" class="btn btn-secondary" onclick="performBackup()">
                         Backup
                     </button>
@@ -35,7 +45,7 @@
                 <input id="chartUpload" type="file" name="chart" accept=".tgz" required class="
                 text-white
                 file:mr-4 file:py-2 file:px-4
-                file:rounded file:border-0 
+                file:rounded file:border-0
                 file:bg-blue-700 file:text-white
                 hover:file:bg-blue-800 cursor-pointer" onchange="this.form.submit()">
             </form>
@@ -58,73 +68,85 @@
         </div>
     </div>
     <main class="container mx-auto p-4">
-        {{if .Charts}}
-        <!-- List Charts Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {{range .Charts}}
-            <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[200px]" data-chart-name="{{.Name}}">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        {{$name := .Name}}
-                        <h2 class="text-lg font-bold text-blue-600">
+        <!-- Charts Section -->
+        <div id="chartsSection">
+            {{if .Charts}}
+            <!-- List Charts Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {{range .Charts}}
+                <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[200px]" data-chart-name="{{.Name}}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            {{$name := .Name}}
+                            <h2 class="text-lg font-bold text-blue-600">
+                                {{with index .Versions 0}}
+                                <a href="/chart/{{$name}}/{{.Version}}/details">
+                                    {{$name}}
+                                </a>
+                                {{end}}
+                            </h2>
+                            {{if gt (len .Versions) 1}}
+                            <select class="mt-2 text-sm border rounded p-1"
+                                onchange="switchVersion('{{.Name}}', this.value)">
+                                {{range .Versions}}
+                                <option value="{{.Version}}">Version: {{.Version}}</option>
+                                {{end}}
+                            </select>
+                            {{else}}
                             {{with index .Versions 0}}
-                            <a href="/chart/{{$name}}/{{.Version}}/details">
-                                {{$name}} <!-- Utiliser $name car nous sommes dans un with -->
+                            <p class="mt-2 text-sm text-gray-600">Version: {{.Version}}</p>
+                            {{end}}
+                            {{end}}
+                        </div>
+                        <div class="flex gap-2">
+                            {{with index .Versions 0}}
+                            <a href="/chart/{{$name}}/{{.Version}}/details" class="tooltip-trigger"
+                                data-tooltip="View chart details">
+                                <i class="material-icons icon-info">info</i>
+                            </a>
+                            <a href="/chart/{{$name}}/{{.Version}}" class="tooltip-trigger"
+                                data-tooltip="Download chart package">
+                                <i class="material-icons icon-download">download</i>
+                            </a>
+                            <a href="#" onclick="deleteChart('{{$name}}', '{{.Version}}')" class="tooltip-trigger"
+                                data-tooltip="Delete this version">
+                                <i class="material-icons icon-delete">delete</i>
                             </a>
                             {{end}}
-                        </h2>
-                        {{if gt (len .Versions) 1}}
-                        <!-- Affiche la liste déroulante seulement s'il y a plus d'une version -->
-                        <select class="mt-2 text-sm border rounded p-1"
-                            onchange="switchVersion('{{.Name}}', this.value)">
-                            {{range .Versions}}
-                            <option value="{{.Version}}">Version: {{.Version}}</option>
-                            {{end}}
-                        </select>
-                        {{else}}
-                        <!-- Affiche juste la version comme texte s'il n'y en a qu'une -->
-                        {{with index .Versions 0}}
-                        <p class="mt-2 text-sm text-gray-600">Version: {{.Version}}</p>
-                        {{end}}
-                        {{end}}
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        {{with index .Versions 0}} <!-- Utilise la première version pour les URLs initiales -->
-                        <a href="/chart/{{$name}}/{{.Version}}/details" class="tooltip-trigger"
-                            data-tooltip="View chart details">
-                            <i class="material-icons icon-info">info</i>
-                        </a>
-                        <a href="/chart/{{$name}}/{{.Version}}" class="tooltip-trigger"
-                            data-tooltip="Download chart package">
-                            <i class="material-icons icon-download">download</i>
-                        </a>
-                        <a href="#" onclick="deleteChart('{{$name}}', '{{.Version}}')" class="tooltip-trigger"
-                            data-tooltip="Delete this version">
-                            <i class="material-icons icon-delete">delete</i>
-                        </a>
-                        {{end}}
-                    </div>
-                </div>
 
-                <div class="version-details flex-1 overflow-hidden">
-                    {{with index .Versions 0}} <!-- Affiche les détails de la première version -->
-                    <div class="text-sm text-gray-600 mb-2">
-                        <p><span class="font-semibold">App Version:</span> {{.AppVersion}}</p>
+                    <div class="version-details flex-1 overflow-hidden">
+                        {{with index .Versions 0}}
+                        <div class="text-sm text-gray-600 mb-2">
+                            <p><span class="font-semibold">App Version:</span> {{.AppVersion}}</p>
+                        </div>
+                        <p class="text-gray-700 description line-clamp-4">{{.Description}}</p>
+                        {{end}}
                     </div>
-                    <p class="text-gray-700 description line-clamp-4">{{.Description}}</p>
-                    {{end}}
                 </div>
+                {{end}}
+            </div>
+            {{else}}
+            <div class="flex flex-col items-center justify-center py-12">
+                <i class="material-icons text-gray-400 text-6xl mb-4">sailing</i>
+                <h2 class="text-2xl font-bold text-gray-600">No Helm Charts Available</h2>
+                <p class="text-gray-500 mt-2">Upload a chart package to get started.</p>
             </div>
             {{end}}
         </div>
-        {{else}}
-        <div class="flex flex-col items-center justify-center py-12">
-            <i class="material-icons text-gray-400 text-6xl mb-4">sailing</i>
-            <h2 class="text-2xl font-bold text-gray-600">No Helm Charts Available</h2>
-            <p class="text-gray-500 mt-2">Upload a chart package to get started.</p>
+
+        <!-- Docker Images Section -->
+        <div id="imagesSection" style="display: none;">
+            <div id="imagesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Images loaded dynamically via JavaScript -->
+            </div>
+            <div id="noImagesMessage" class="flex flex-col items-center justify-center py-12" style="display: none;">
+                <i class="material-icons text-gray-400 text-6xl mb-4">inventory_2</i>
+                <h2 class="text-2xl font-bold text-gray-600">No Docker Images Available</h2>
+                <p class="text-gray-500 mt-2">Push an image using: <code class="bg-gray-200 px-2 py-1 rounded">docker push &lt;registry&gt;/&lt;image&gt;:&lt;tag&gt;</code></p>
+            </div>
         </div>
-    
-        {{ end}}
     </main>
 
 </body>
