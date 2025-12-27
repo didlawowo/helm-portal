@@ -117,7 +117,7 @@ ingress:
   tls:
     enabled: true
     secretName: ""
-  ingressClassName: nginx
+  ingressClassName: traefik
 env:
   - name: ENV
     value: production
@@ -170,6 +170,11 @@ envFrom: []
 # Secret pour les credentials de backup (optionnel)
 # - secretRef:
 #     name: helm-portal-backup
+# External Secrets (Pulumi ESC)
+externalSecrets:
+  enabled: false
+  secrets: []
+
 config:
   server:
     port: 3030

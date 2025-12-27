@@ -46,12 +46,27 @@ config:
     level: "info"
     format: "json"
 
+# Désactivé - utilise externalSecrets à la place
 secrets:
-  dotenv:
-  - name: backup
-    path: values/home/secrets/secrets.env
-  files:
-  - name: auth
-    path: values/home/secrets/auth.yaml
-  - name: gcp
-    path: values/home/secrets/gcp-creds.json
+  dotenv: []
+  files: []
+
+# External Secrets avec Pulumi ESC
+externalSecrets:
+  enabled: true
+  secrets:
+    - name: auth
+      store: pulumi-store
+      refreshInterval: 1h
+      template:
+        type: Opaque
+        data:
+          auth.yaml: |
+            auth:
+              users:
+              - username: "admin"
+                password: "{{ .adminPassword }}"
+      keys:
+        - name: adminPassword
+          remoteKey: didlawowo/new-home
+          property: helm-portal-password
