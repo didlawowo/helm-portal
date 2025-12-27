@@ -3,7 +3,7 @@ namespace: helm-portal
 podAnnotations: {}
 image:
   repository: fizzbuzz2/helm-portal
-  tag: "bd12668"
+  tag: "f266df6"
   pullPolicy: "Always"
   pullSecrets: []
 strategy:
@@ -174,7 +174,6 @@ envFrom: []
 externalSecrets:
   enabled: false
   secrets: []
-
 config:
   server:
     port: 3030
